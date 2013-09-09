@@ -26,13 +26,14 @@ ccflags-y	+= -I$(PWD)/THINVPP/source/include/include_BG2_A0
 ccflags-y 	+= -I$(PWD)/THINVPP/include
 ccflags-y 	+= -I$(PWD)/THINVPP/source/include
 ccflags-y 	+= -I$(PWD)/THINVPP/source/MISC/include
+ccflags-y 	+= -I$(PWD)/THINVPP/source/PORTED/include
 asflags-y 	+= -I$(PWD)
 
+FASTLOGO_SOURCE += $(wildcard $(PWD)/THINVPP/source/*.c)
+FASTLOGO_SOURCE += $(wildcard $(PWD)/THINVPP/source/MISC/source/*.c)
+FASTLOGO_SOURCE += $(wildcard $(PWD)/THINVPP/source/PORTED/source/*.c)
 
-FASTLOGO_OBJ += THINVPP/source/thinvpp_api.o
-FASTLOGO_OBJ += THINVPP/source/thinvpp_apifuncs.o
-FASTLOGO_OBJ += THINVPP/source/thinvpp_isr.o
-FASTLOGO_OBJ += THINVPP/source/MISC/source/thinvpp_bcmbuf.o
+FASTLOGO_OBJ += $(patsubst $(PWD)/%.c,%.o,$(FASTLOGO_SOURCE))
 ifeq ($(CONFIG_MV88DE3100_PE_MODULE),y)
 #use the avio_dhub_drv in pe module
 else
