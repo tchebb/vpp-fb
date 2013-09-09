@@ -22,6 +22,7 @@
 #define _THINVPP_API_H_
 
 #include "thinvpp_api_types.h"
+#include <linux/types.h>
 
 // error code definitions
 #define MV_THINVPP_OK              1
