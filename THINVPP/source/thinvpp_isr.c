@@ -344,12 +344,15 @@ static unsigned* m_UpdateVPSize(unsigned* Que, THINVPP_OBJ *vpp_obj, unsigned ih
     return Que;
 }
 
-void init_vbi(THINVPP_OBJ *vpp_obj, logo_device_t *fastlogo_ctx)
+void init_vbi(THINVPP_OBJ *vpp_obj)
 {
     PLANE *plane = &vpp_obj->plane[PLANE_MAIN];
     VBUF_INFO *pinfo = plane->pinfo;
     unsigned *Que, *Cmd, *CmdEnd;
     unsigned CropWpl;
+    logo_device_t *fastlogo_ctx;
+
+    fastlogo_ctx = vpp_obj->fastlogo_ctx;
 
 #if LOGO_USE_SHM
     Cmd = (unsigned *) fastlogo_ctx->bcmQ;
@@ -529,8 +532,7 @@ void THINVPP_CPCB_ISR_service(THINVPP_OBJ *vpp_obj, int cpcbID, volatile int *cp
 			toggleQ(vpp_obj, cpcbID);
 
 			/* disable interrupt */
-			// TODO: Another fastlogo_ctx hack
-			THINVPP_Enable_ISR_Interrupt(vpp_obj, CPCB_1, 0, NULL);
+			THINVPP_Enable_ISR_Interrupt(vpp_obj, CPCB_1, 0);
 
 			pDV->status = STATUS_INACTIVE;
 			stop_flag++;
@@ -581,7 +583,7 @@ void THINVPP_CPCB_ISR_service(THINVPP_OBJ *vpp_obj, int cpcbID, volatile int *cp
  * PARAMS: cpcbID - CPCB ID
  * RETURN: none
  *************************************************************/
-void THINVPP_Enable_ISR_Interrupt(THINVPP_OBJ *vpp_obj, int cpcbID, int flag, logo_device_t *fastlogo_ctx)
+void THINVPP_Enable_ISR_Interrupt(THINVPP_OBJ *vpp_obj, int cpcbID, int flag)
 {
     if (cpcbID == CPCB_1){
         /* configure and enable CPCB0 interrupt */
@@ -593,7 +595,7 @@ void THINVPP_Enable_ISR_Interrupt(THINVPP_OBJ *vpp_obj, int cpcbID, int flag, lo
         {
             if (!vbi_init)
             {
-                init_vbi(vpp_obj, fastlogo_ctx);
+                init_vbi(vpp_obj);
             }
             vbi_init = 1;
             flag = 1;

@@ -80,7 +80,6 @@ void VPP_dhub_sem_clear(void)
  * RETURN: MV_THINVPP_OK - succeed
  *         MV_THINVPP_EUNCONFIG - not initialized
  ***********************************************/
-// TODO: Passing fastlogo_ctx is ugly. Figure out something better.
 int MV_THINVPP_Create(int base_addr, logo_device_t *fastlogo_ctx)
 {
     if (!(thinvpp_obj = (THINVPP_OBJ *)THINVPP_MALLOC(sizeof(THINVPP_OBJ)))){
@@ -89,6 +88,7 @@ int MV_THINVPP_Create(int base_addr, logo_device_t *fastlogo_ctx)
 
     THINVPP_MEMSET(thinvpp_obj, 0, sizeof(THINVPP_OBJ));
 
+    thinvpp_obj->fastlogo_ctx = fastlogo_ctx;
     thinvpp_obj->base_addr = base_addr;
 
 #if LOGO_USE_SHM

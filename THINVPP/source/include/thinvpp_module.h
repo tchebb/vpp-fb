@@ -252,6 +252,7 @@ typedef struct THINVPP_OBJ_T {
     BCMBUF *pVbiBcmBufCpcb[VPP_CPCB_MAX];
     BCMBUF *pVbiBcmBuf;    //pointer to the VBI BCM buffer in use
 
+    logo_device_t *fastlogo_ctx;
 } THINVPP_OBJ;
 
 

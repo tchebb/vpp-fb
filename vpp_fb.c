@@ -339,7 +339,7 @@ static int vpp_fb_set_par(struct fb_info *info)
 	VPP_dhub_sem_clear();
 	semaphore_pop(thinvpp_obj->pSemHandle, avioDhubSemMap_vpp_vppCPCB0_intr, 1);
 	semaphore_clr_full(thinvpp_obj->pSemHandle, avioDhubSemMap_vpp_vppCPCB0_intr);
-	THINVPP_Enable_ISR_Interrupt(thinvpp_obj, CPCB_1, 1, &par->fastlogo_ctx);
+	THINVPP_Enable_ISR_Interrupt(thinvpp_obj, CPCB_1, 1);
 
 	return 0;
 }
