@@ -20,7 +20,7 @@
 
 #include "thinvpp_module.h"
 #include "thinvpp_common.h"
-#include "Galois_memmap.h"
+#include "memmap.h"
 #include "avio.h"
 #include "galois_io.h"
 #include "maddr.h"

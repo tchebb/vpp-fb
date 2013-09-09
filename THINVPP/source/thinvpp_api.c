@@ -20,7 +20,7 @@
 
 #define _THINVPP_API_C_
 
-#include "Galois_memmap.h"
+#include "memmap.h"
 #include "galois_io.h"
 
 #include "thinvpp_module.h"

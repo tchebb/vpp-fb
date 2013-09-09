@@ -37,7 +37,7 @@
 #include "thinvpp_isr.h"
 #include "api_dhub.h"
 #include "api_avio_dhub.h"
-#include "Galois_memmap.h"
+#include "memmap.h"
 #include "bcm_cmds.h"
 
 #if LOGO_USE_SHM
