@@ -222,11 +222,6 @@ static int vpp_fb_set_par(struct fb_info *info)
 
 	/* create PE device */
 
-	// init context
-	par->fastlogo_ctx.bcmQ_len = bcmQ_len;
-	par->fastlogo_ctx.dmaQ_len = 8*8;
-	par->fastlogo_ctx.cfgQ_len = 8*8;
-
 	/* set up logo frame */
 	vbuf.alpha   = 255;
 	vbuf.bgcolor = 0x00800080;
@@ -241,7 +236,6 @@ static int vpp_fb_set_par(struct fb_info *info)
 
 	par->fastlogo_ctx.length = vbuf.m_buf_stride * vbuf.m_active_height;
 
-	// TODO: Make sure it works without LOGO_USE_SHM
 #if LOGO_USE_SHM
 	// use MV_SHM for logo buffer and 3 dhub queues to have contiguous memory
 	par->fastlogo_ctx.mSHMSize = par->fastlogo_ctx.length +
@@ -260,6 +254,9 @@ static int vpp_fb_set_par(struct fb_info *info)
 	{
 		char *shm = (char *) par->fastlogo_ctx.logoBuf;
 		unsigned shm_phys = (unsigned) par->fastlogo_ctx.mapaddr;
+		par->fastlogo_ctx.bcmQ_len = bcmQ_len;
+		par->fastlogo_ctx.dmaQ_len = 8*8;
+		par->fastlogo_ctx.cfgQ_len = 8*8;
 		par->fastlogo_ctx.bcmQ = shm + par->fastlogo_ctx.length;
 		par->fastlogo_ctx.dmaQ = par->fastlogo_ctx.bcmQ + par->fastlogo_ctx.bcmQ_len;
 		par->fastlogo_ctx.cfgQ = par->fastlogo_ctx.dmaQ + par->fastlogo_ctx.dmaQ_len;
