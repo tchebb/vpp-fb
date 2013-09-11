@@ -241,7 +241,7 @@ static void prepareQ(THINVPP_OBJ *vpp_obj, int cpcbID)
 }
 
 /* interrupt service routine for CPCB TG interrupt */
-void THINVPP_CPCB_ISR_service(THINVPP_OBJ *vpp_obj, int cpcbID, volatile int *cpcb_start_flag)
+void THINVPP_CPCB_ISR_service(THINVPP_OBJ *vpp_obj, int cpcbID)
 {
     DV *pDV;
     int params[2];

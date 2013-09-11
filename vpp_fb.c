@@ -83,7 +83,6 @@ struct vpp_fb_par {
 	u64 last_isr_time;
 	unsigned last_isr_interval;
 	volatile int logo_isr_count;
-	volatile int cpcb_start_flag;
 };
 
 static struct fb_fix_screeninfo vpp_fb_fix __devinitdata = {
@@ -148,7 +147,7 @@ static irqreturn_t fastlogo_devices_vpp_isr(int irq, void *dev_id)
 
 		if(par->logo_isr_count > 1)
 		{
-			THINVPP_CPCB_ISR_service(thinvpp_obj, CPCB_1, &par->cpcb_start_flag);
+			THINVPP_CPCB_ISR_service(thinvpp_obj, CPCB_1);
 		}
 	}
 
