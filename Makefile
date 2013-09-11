@@ -14,7 +14,7 @@ HEADER_PATH :=  \
 	-I$(PWD)/Common/include \
 	-I$(PWD)/Common/include/$(FIRMWARE)
 
-#ccflags-y	+= -DLOGO_ENABLE_MAIN=1 -DLOGO_ENABLE_PIP=0 -DLOGO_ENABLE_AUX=0
+ccflags-y	+= -DLOGO_ENABLE_MAIN=1 -DLOGO_ENABLE_PIP=0 -DLOGO_ENABLE_AUX=0
 #ccflags-y	+= -DLOGO_PROC_FS=1 -DLOGO_TIME_PROFILE=1
 ifeq ($(CONFIG_MV88DE3100_SHM),y)
 ccflags-y	+= -DLOGO_USE_SHM=1
@@ -25,13 +25,19 @@ ccflags-y	+= -I$(PWD)/THINVPP/source/include/include_BG2_A0
 
 ccflags-y 	+= -I$(PWD)/THINVPP/include
 ccflags-y 	+= -I$(PWD)/THINVPP/source/include
+ccflags-y 	+= -I$(PWD)/THINVPP/source/BE/include
+ccflags-y 	+= -I$(PWD)/THINVPP/source/CPCB/include
+ccflags-y 	+= -I$(PWD)/THINVPP/source/FE/include
 ccflags-y 	+= -I$(PWD)/THINVPP/source/MISC/include
-ccflags-y 	+= -I$(PWD)/THINVPP/source/PORTED/include
+ccflags-y 	+= -I$(PWD)/THINVPP/source/SCL/include
 asflags-y 	+= -I$(PWD)
 
 FASTLOGO_SOURCE += $(wildcard $(PWD)/THINVPP/source/*.c)
+FASTLOGO_SOURCE += $(wildcard $(PWD)/THINVPP/source/BE/source/*.c)
+FASTLOGO_SOURCE += $(wildcard $(PWD)/THINVPP/source/CPCB/source/*.c)
+FASTLOGO_SOURCE += $(wildcard $(PWD)/THINVPP/source/FE/source/*.c)
 FASTLOGO_SOURCE += $(wildcard $(PWD)/THINVPP/source/MISC/source/*.c)
-FASTLOGO_SOURCE += $(wildcard $(PWD)/THINVPP/source/PORTED/source/*.c)
+FASTLOGO_SOURCE += $(wildcard $(PWD)/THINVPP/source/SCL/source/*.c)
 
 FASTLOGO_OBJ += $(patsubst $(PWD)/%.c,%.o,$(FASTLOGO_SOURCE))
 ifeq ($(CONFIG_MV88DE3100_PE_MODULE),y)

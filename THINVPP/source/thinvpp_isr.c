@@ -22,384 +22,32 @@
 
 #include "linux/sched.h" // for cpu_clock()
 #include "thinvpp_module.h"
+#include "thinvpp_cpcb.h"
 #include "thinvpp_apifuncs.h"
 #include "thinvpp_isr.h"
 
 #include "vpp.h"
 #include "maddr.h"
 
+#include "vpp_fe_deint.h"
+#include "vpp_fe_dlr.h"
+#include "vpp_frc_scl.h"
 #include "api_avio_dhub.h"
 #include "avioDhub.h"
-#include "bcm_cmds.h"
 
 extern int stop_flag;
 
-static int vbi_init=0;
-
-#if LOGO_USE_SHM
-static void set_bcm_cmd_0(THINVPP_OBJ *vpp_obj, unsigned bytes)
-{
-    // first vpp commands are pre-loaded
-    BCMBUF *pbcmbuf = vpp_obj->pVbiBcmBuf;
-    pbcmbuf->writer += (bytes/sizeof(*pbcmbuf->writer));
-}
-#endif
-static void set_bcm_cmd(THINVPP_OBJ *vpp_obj, unsigned * cmd, unsigned bytes)
-{
-    BCMBUF *pbcmbuf = vpp_obj->pVbiBcmBuf;
-
-    memcpy(pbcmbuf->writer, cmd, bytes);
-    pbcmbuf->writer += (bytes/sizeof(*pbcmbuf->writer));
-}
-
-static void dma_logo_frame(THINVPP_OBJ *vpp_obj)
-{
-    DHUB_CFGQ *src_cfgQ = vpp_obj->dv[CPCB_1].curr_cpcb_vbi_dma_cfgQ;
-    unsigned bytes = logo_dma_cmd_len;
-#if LOGO_USE_SHM
-    // logo dma commands are pre-loaded
-#else
-    memcpy(src_cfgQ->addr, logo_frame_dma_cmd, bytes);
-#endif
-    src_cfgQ->len = bytes/8;
-}
-
-
-typedef struct _rect_win { unsigned left, top, right, bottom; } RECT_WIN;
-typedef struct _RES_T { unsigned int HRes, VRes; } VPP_FE_DLR_INPUT_RES, *PVPP_FE_DLR_INPUT_RES;
-
-/*the offset plus with input resolution to set dummy TG size*/
-#define VPP_FE_DUMMY_TG_SIZE_H_OFF_P 20
-#define VPP_FE_DUMMY_TG_SIZE_V_OFF_P 10
-#define VPP_FE_DUMMY_TG_SIZE_H_OFF_I 22
-#define VPP_FE_DUMMY_TG_SIZE_V_OFF_I 10
-#define VPP_FE_DUMMY_TG_HS_FE 1
-#define VPP_FE_DUMMY_TG_HS_BE 3
-#define VPP_FE_DUMMY_TG_HB_FE_OFF 8
-#define VPP_FE_DUMMY_TG_HB_BE     7
-#define VPP_FE_DUMMY_TG_VB0_FE_OFF 3
-#define VPP_FE_DUMMY_TG_VB0_BE     2
-
 #define PIXEL_PER_BEAT_YUV_422   4
 
-static const unsigned int VppFeDlrRegOff[] = {
-    RA_LDR_BG,
-    RA_LDR_MAIN,
-    RA_LDR_PIP,
-    RA_LDR_PG,
-    RA_LDR_IG,
-    RA_LDR_CURSOR,
-    RA_LDR_MOSD
-};
-
-typedef enum VPP_OVL_PLANE_UNIT_NUM_T
+static void updateVPSize(THINVPP_OBJ *vpp_obj, PLANE *plane)
 {
-    Vpp_OVL_PLANE0 = 0,
-    Vpp_OVL_PLANE1,
-    Vpp_OVL_PLANE2,
-    Vpp_OVL_PLANE3,
-    Vpp_OVL_PLANE3A,
-    Vpp_OVL_PLANE3B,
-    Vpp_OVL_PLANE3C,
-    Vpp_OVL_PLANE3D,
-}VPP_OVL_PLANE_UNIT_NUM;
+    VPP_VP_CLIENT_SIZE vp_size;
 
-static unsigned CPCB1_VPP_OVL_PlaneColorRegOffset[] = {
-    CPCB0_OO_FIX0_0<<2,
-    CPCB0_OO_FIX1_0<<2,
-    CPCB0_OO_FIX2_0<<2,
-    CPCB0_OO_FIX3_0<<2,
-    CPCB0_OO_FIX3A_0<<2,
-    CPCB0_OO_FIX3B_0<<2,
-    CPCB0_OO_FIX3C_0<<2,
-    CPCB0_OO_FIX3D_0<<2,
-};
-static unsigned CPCB3_VPP_OVL_PlaneColorRegOffset[] = {
-    CPCB2_OO_FIX0_0<<2,
-    CPCB2_OO_FIX1_0<<2,
-    ~0,
-    ~0,
-    ~0,
-    ~0,
-    ~0,
-    ~0,
-};
-static unsigned CPCB1_VPP_OVL_BorderAlphaRegOffset[] = {
-    ~0,
-    CPCB0_OO_P5_AL<<2,
-    CPCB0_OO_P6_AL<<2,
-    CPCB0_OO_P7_AL<<2,
-    CPCB0_OO_P7A_AL<<2,
-    CPCB0_OO_P7B_AL<<2,
-    CPCB0_OO_P7C_AL<<2,
-    CPCB0_OO_P7D_AL<<2,
-};
+    vp_size.ihRes = plane->actv_win.width;
+    vp_size.ivRes = plane->actv_win.height;
+    vp_size.IsProgressive = 1;
 
-static unsigned VPP_OVL_WeightRegOffset[] = {
-    CPCB0_VO_WEIGHT << 2,
-    CPCB1_VO_WEIGHT << 2,
-    ~0,
-    ~0
-};
-
-
-
-static unsigned* set_plane_widnow_helper(unsigned* Que, unsigned plane_addr, unsigned value)
-{
-    *Que++ = value & 0xff;
-    *Que++ = plane_addr;
-    *Que++ = (value>>8) & 0xff;
-    *Que++ = plane_addr + 4;
-    return Que;
-}
-
-static unsigned* m_SetPlaneWindow(unsigned* Que, unsigned plane_addr, RECT_WIN *Win)
-{
-    Que = set_plane_widnow_helper(Que, plane_addr + 0*8, Win->left);
-    Que = set_plane_widnow_helper(Que, plane_addr + 1*8, Win->right);
-    Que = set_plane_widnow_helper(Que, plane_addr + 2*8, Win->top);
-    Que = set_plane_widnow_helper(Que, plane_addr + 3*8, Win->bottom);
-    return Que;
-}
-
-static unsigned* m_THINVPP_CPCB_SetPlaneAttribute(unsigned* Que, THINVPP_OBJ *vpp_obj, int cpcbID, int layerID, int alpha, int bgcolor)
-{
-    unsigned RegAddr;
-
-    // set plane background color
-    RegAddr = ~0;
-    if (cpcbID == CPCB_1)
-    {
-        RegAddr = CPCB1_VPP_OVL_PlaneColorRegOffset[layerID+1];
-    }
-    else if (cpcbID == CPCB_3)
-    {
-        RegAddr = CPCB3_VPP_OVL_PlaneColorRegOffset[layerID+1];
-    }
-
-    if (RegAddr == ~0)
-        return Que;
-
-    *Que++ = GET_LOWEST_BYTE(bgcolor);
-    *Que++ = (vpp_obj->base_addr + RegAddr);
-    *Que++ = GET_SECOND_BYTE(bgcolor);
-    *Que++ = (vpp_obj->base_addr + RegAddr + 4);
-    *Que++ = GET_THIRD_BYTE(bgcolor);
-    *Que++ = (vpp_obj->base_addr + RegAddr + 8);
-
-    // set plane source global alpha
-    if ((cpcbID > CPCB_1) || (layerID > CPCB1_PLANE_2))
-        return Que;
-
-    RegAddr = (CPCB0_OO_P1_AL << 2);
-    if (layerID == CPCB1_PLANE_2)
-    {
-        unsigned alpha2;
-
-        alpha2 = (vpp_obj->chan[CHAN_MAIN].zorder < vpp_obj->chan[CHAN_PIP].zorder)?
-             (alpha+1)/2: (256-alpha)/2;
-        //VPP_OVL_SetVideoBlendingFactor(vpp_obj, cpcbID, alpha2);
-        *Que++ = alpha2;
-        *Que++ = (vpp_obj->base_addr + VPP_OVL_WeightRegOffset[cpcbID]);
-
-        RegAddr += 4;
-    }
-
-    *Que++ = alpha;
-    *Que++ = (vpp_obj->base_addr + RegAddr);
-
-    // set plane border global alpha
-    RegAddr = CPCB1_VPP_OVL_BorderAlphaRegOffset[layerID+1];
-    *Que++ = alpha;
-    *Que++ = (vpp_obj->base_addr + RegAddr);
-
-    return Que;
-}
-
-static unsigned *m_THINVPP_CPCB_SetPlaneSourceWindow(unsigned *Que, THINVPP_OBJ *vpp_obj, int cpcbID, int layerID, int x, int y, int width, int height)
-{
-    unsigned PlaneAddr;
-    RECT_WIN window;
-    window.left = x;
-    window.top = y;
-    window.right = x + width;
-    window.bottom = y + height;
-
-    switch (cpcbID){
-        case CPCB_1:
-            switch (layerID){
-                case CPCB1_PLANE_1: /* CPCB plane 1 */
-                    PlaneAddr = vpp_obj->base_addr + (CPCB0_P1_SX_L << 2); // CPCB_1::TG_PLANE1_MAIN
-                    Que = m_SetPlaneWindow(Que, PlaneAddr, &window);
-                    PlaneAddr = vpp_obj->base_addr + (CPCB0_P1_CR1_SX_L << 2); // CPCB_1::TG_PLANE1_MAIN_CROP1
-                    Que = m_SetPlaneWindow(Que, PlaneAddr, &window);
-                    PlaneAddr = vpp_obj->base_addr + (CPCB0_P1_CR2_SX_L << 2); // CPCB_1::TG_PLANE1_MAIN_CROP1
-                    Que = m_SetPlaneWindow(Que, PlaneAddr, &window);
-                    break;
-                case CPCB1_PLANE_2: /* CPCB plane 2 */
-                    PlaneAddr = vpp_obj->base_addr + (CPCB0_P2_SX_L << 2); // CPCB_1::TG_PLANE2_PIP
-                    Que = m_SetPlaneWindow(Que, PlaneAddr, &window);
-                    PlaneAddr = vpp_obj->base_addr + (CPCB0_P2_CR1_SX_L << 2); // CPCB_1::TG_PLANE2_PIP_CROP1
-                    Que = m_SetPlaneWindow(Que, PlaneAddr, &window);
-                    break;
-            }
-            break;
-        case CPCB_3:
-            switch (layerID){
-                case CPCB1_PLANE_1: /* CPCB plane 1 */
-                    PlaneAddr = vpp_obj->base_addr + (CPCB2_P1_SX_L << 2); // CPCB_3::TG_PLANE1_MAIN
-                    Que = m_SetPlaneWindow(Que, PlaneAddr, &window);
-                    break;
-            }
-            break;
-    }
-
-    return Que;
-}
-
-static unsigned *m_FE_DLR_SetVPDMX(unsigned *Que, THINVPP_OBJ *vpp_obj, unsigned HRes, unsigned VRes)
-{
-    *Que++ = (HRes-1);
-    *Que++ = (vpp_obj->base_addr + RA_Vpp_VP_DMX_HRES);
-
-    *Que++ = ((VRes/2)-1);
-    *Que++ = (vpp_obj->base_addr + RA_Vpp_VP_DMX_VRES);
-
-    *Que++ = (HRes + VPP_FE_DUMMY_TG_SIZE_H_OFF_I - 1);
-    *Que++ = (vpp_obj->base_addr + RA_Vpp_VP_DMX_HT);
-
-    *Que++ = (VRes + VPP_FE_DUMMY_TG_SIZE_V_OFF_I - 1);
-    *Que++ = (vpp_obj->base_addr + RA_Vpp_VP_DMX_IVT);
-
-    *Que++ = (VRes + VPP_FE_DUMMY_TG_SIZE_V_OFF_I - 1);
-    *Que++ = (vpp_obj->base_addr + RA_Vpp_VP_DMX_VT);
-
-    *Que++ = (1);
-    *Que++ = (vpp_obj->base_addr + RA_Vpp_VP_DMX_CTRL);
-
-    return Que;
-}
-
-static unsigned *m_FE_DLR_SetPlaneSize(unsigned *Que, THINVPP_OBJ *vpp_obj, int Channel, unsigned HRes, unsigned VRes, unsigned CropWpl)
-{
-    unsigned int RegAddr = vpp_obj->base_addr + RA_Vpp_LDR + VppFeDlrRegOff[Channel];
-
-    /*write plane size to BCM buffer*/
-    *Que++ = (VRes + (HRes << 16));
-    *Que++ = (RegAddr + RA_PLANE_SIZE);
-
-    /*write crop WPL to BCM buffer*/
-    *Que++ = CropWpl;
-    *Que++ = (RegAddr + RA_PLANE_CROP);
-
-    return Que;
-}
-
-static unsigned *m_FE_DLR_SetDummyTG(unsigned *Que, THINVPP_OBJ *vpp_obj, unsigned HRes, unsigned VRes)
-{
-    unsigned int RegAddr;
-
-    RegAddr = vpp_obj->base_addr + RA_Vpp_VP_TG;
-
-    /*write TG size*/
-    *Que++ = ((VRes + VPP_FE_DUMMY_TG_SIZE_V_OFF_P) + ((HRes + VPP_FE_DUMMY_TG_SIZE_H_OFF_P) << 16));
-    *Que++ = (RegAddr + RA_TG_SIZE);
-
-    /*write the H blank front edge value*/
-    *Que++ = (HRes + VPP_FE_DUMMY_TG_HB_FE_OFF + (VPP_FE_DUMMY_TG_HB_BE << 16));
-    *Que++ = (RegAddr + RA_TG_HB);
-
-    /*write the V blank front edge value*/
-    *Que++ = (VRes + VPP_FE_DUMMY_TG_VB0_FE_OFF + (VPP_FE_DUMMY_TG_VB0_BE << 16));
-    *Que++ = (RegAddr + RA_TG_VB0);
-
-    return Que;
-}
-
-static unsigned* m_UpdateVPSize(unsigned* Que, THINVPP_OBJ *vpp_obj, unsigned ihRes, unsigned ivRes)
-{
-    unsigned int TotalInpPix, TotalOutPix;
-    unsigned int TotPixForWriteClient, TotPixForReadClient;
-
-    TotalInpPix =
-    TotalOutPix = ivRes * ihRes;
-
-    //THINVPP_BCMBUF_Write(vpp_obj->pVbiBcmBuf, vpp_obj->base_addr+RA_Vpp_vpIn_pix, TotalInpPix);
-    *Que++ = TotalInpPix;
-    *Que++ = (vpp_obj->base_addr+RA_Vpp_vpIn_pix);
-    //THINVPP_BCMBUF_Write(vpp_obj->pVbiBcmBuf, vpp_obj->base_addr+RA_Vpp_vpOut_pix, TotalOutPix);
-    *Que++ = TotalOutPix;
-    *Que++ = (vpp_obj->base_addr+RA_Vpp_vpOut_pix);
-
-    TotPixForWriteClient = (ivRes + 1) * ihRes;
-    TotPixForReadClient = (TotPixForWriteClient * 26 + 63) / 64;
-
-    //THINVPP_BCMBUF_Write(vpp_obj->pVbiBcmBuf, vpp_obj->base_addr+RA_Vpp_diW_pix, TotPixForWriteClient);
-    *Que++ = TotPixForWriteClient;
-    *Que++ = (vpp_obj->base_addr+RA_Vpp_diW_pix);
-    //THINVPP_BCMBUF_Write(vpp_obj->pVbiBcmBuf, vpp_obj->base_addr+RA_Vpp_diR_word, TotPixForReadClient);
-    *Que++ = TotPixForReadClient;
-    *Que++ = (vpp_obj->base_addr+RA_Vpp_diR_word);
-
-    return Que;
-}
-
-void init_vbi(THINVPP_OBJ *vpp_obj)
-{
-    PLANE *plane = &vpp_obj->plane[PLANE_MAIN];
-    VBUF_INFO *pinfo = plane->pinfo;
-    unsigned *Que, *Cmd, *CmdEnd;
-    unsigned CropWpl;
-    logo_device_t *fastlogo_ctx;
-
-    fastlogo_ctx = vpp_obj->fastlogo_ctx;
-
-#if LOGO_USE_SHM
-    Cmd = (unsigned *) fastlogo_ctx->bcmQ;
-    Que = (unsigned *) fastlogo_ctx->dmaQ;
-#else
-    Cmd = (unsigned *) bcm_cmd_0;
-    Que = (unsigned *) logo_frame_dma_cmd;
-#endif
-    CmdEnd = Cmd + (bcm_cmd_0_len/(sizeof(unsigned)));
-    //pinfo->m_active_left &= ~1;
-    //pinfo->m_active_width = ((pinfo->m_active_left + pinfo->m_active_width) & ~1) - pinfo->m_active_left;
-    CropWpl = (((pinfo->m_active_width + PIXEL_PER_BEAT_YUV_422 - 1) / PIXEL_PER_BEAT_YUV_422) << 16);
-    plane->wpl = (CropWpl>>16);
-
-    while (Cmd < CmdEnd)
-    {
-        switch (*Cmd & 0xf0000000)
-        {
-        case 0x80000000:
-            Cmd = m_THINVPP_CPCB_SetPlaneAttribute(Cmd, vpp_obj, 0, 0, pinfo->alpha, pinfo->bgcolor);
-            break;
-        case 0x90000000:
-            Cmd = m_FE_DLR_SetPlaneSize(Cmd, vpp_obj, 1, pinfo->m_active_width, pinfo->m_active_height, CropWpl);
-            break;
-        case 0xa0000000:
-            Cmd = m_FE_DLR_SetVPDMX(Cmd, vpp_obj, pinfo->m_active_width, pinfo->m_active_height);
-            break;
-        case 0xb0000000:
-            Cmd = m_FE_DLR_SetDummyTG(Cmd, vpp_obj, pinfo->m_active_width, pinfo->m_active_height);
-            break;
-        case 0xc0000000:
-            Cmd = m_UpdateVPSize(Cmd, vpp_obj, pinfo->m_active_width, pinfo->m_active_height);
-            break;
-        case 0xd0000000:
-            Cmd = m_THINVPP_CPCB_SetPlaneSourceWindow(Cmd, vpp_obj, 0, 0,
-                    pinfo->m_active_left, pinfo->m_active_top, pinfo->m_active_width, pinfo->m_active_height);
-            break;
-        default:
-            Cmd += 2;
-            break;
-        }
-    }
-
-    START_2DDMA(plane->dmaRdhubID, plane->dmaRID,
-        (unsigned) pinfo->m_pbuf_start + (unsigned) pinfo->m_disp_offset, pinfo->m_buf_stride,
-        plane->wpl*8, plane->actv_win.height,
-        (unsigned int (*)[2])Que);
+    FE_DEINT_SetVpDeintClientSize(vpp_obj, &vp_size, 0/* no training required */);
 }
 
 /////////////////////////////////////////////////////
@@ -420,35 +68,136 @@ static int startChannelDataLoader(THINVPP_OBJ *vpp_obj, int chanID)
 {
     int cpcbID;
     CHAN *chan;
-    PLANE *plane;
 
     cpcbID = CPCB_OF_CHAN(vpp_obj, chanID);
     chan = &vpp_obj->chan[chanID];
 
-    if (chanID == CHAN_MAIN || chanID == CHAN_PIP) { /* none AUX channel */
-        int planeID = chanID;
+    if (chanID == CHAN_MAIN) { /* none AUX channel */
+        VBUF_INFO * pinfo;
+        unsigned active_left, active_width, frame_addr;
+        unsigned dlr_id = VPP_FE_DLR_CHANNEL_MAIN;
+        unsigned scl_id = VPP_FRC_SCL_MAIN;
+        PLANE *plane = &vpp_obj->plane[PLANE_MAIN];
+        VPP_FE_DLR_PLANE_DATA_FMT plane_fmt;
+        VPP_SCL_CTRL scl_ctrl;
+        VPP_FRC_RES frc_res;
+        VPP_SCL_RES scl_res;
+        VPP_FE_DLR_INPUT_RES res;
+        int CropWpl;
 
-        plane = &vpp_obj->plane[planeID];
+        pinfo = plane->pinfo;
+        frame_addr = (unsigned)pinfo->m_pbuf_start + (unsigned) pinfo->m_disp_offset;
+        active_left = (pinfo->m_active_left) & ~1; //has to be even num
+        active_width = ((pinfo->m_active_left + pinfo->m_active_width) & ~1) - active_left; //has to be even num
 
         switch (plane->status) {
         case STATUS_ACTIVE:
+#if 0
 #if LOGO_USE_SHM
             // first vpp commands are pre-loaded
             set_bcm_cmd_0(vpp_obj, bcm_cmd_0_len);
 #else
             set_bcm_cmd(vpp_obj, bcm_cmd_0, bcm_cmd_0_len);
 #endif
-            dma_logo_frame(vpp_obj);
+            /* start data loader DMA to load display content */
+            vpp_obj->dv[CPCB_1].curr_cpcb_vbi_dma_cfgQ->len += START_2DDMA(plane->dmaRdhubID, plane->dmaRID,
+                (unsigned int)frame_addr, pinfo->m_buf_stride, plane->wpl*8, plane->actv_win.height,
+                (unsigned int (*)[2])(vpp_obj->dv[CPCB_1].curr_cpcb_vbi_dma_cfgQ->addr+vpp_obj->dv[CPCB_1].curr_cpcb_vbi_dma_cfgQ->len*2));
+#endif
+            //set_bcm_cmd(vpp_obj, bcm_cmd_0, 480);
+
+            chan->disp_win_attr.bgcolor = pinfo->bgcolor;
+            chan->disp_win_attr.alpha = pinfo->alpha;
+
+            plane->actv_win.x = active_left;
+            plane->actv_win.y = pinfo->m_active_top;
+            plane->actv_win.width  = active_width;
+            plane->actv_win.height = pinfo->m_active_height;
+
+            THINVPP_CPCB_SetPlaneAttribute(vpp_obj, cpcbID, chan->dvlayerID, chan->disp_win_attr.alpha, chan->disp_win_attr.bgcolor);
+
+            plane_fmt.SrcFmt = SRCFMT_YUV422;
+            plane_fmt.FmtOrder = ORDER_UYVY;
+            FE_DLR_SetPlaneDataFmt(vpp_obj, dlr_id, &plane_fmt);
+
+            FRC_SCL_ChopCtrl(vpp_obj, scl_id, 0);
+
+            /*calculate crop WPL*/
+            CropWpl = (((plane->actv_win.width + PIXEL_PER_BEAT_YUV_422 - 1) / PIXEL_PER_BEAT_YUV_422) << 16);
+            plane->wpl = CropWpl >> 16;
+
+            res.HRes = plane->actv_win.width;
+            res.VRes = plane->actv_win.height;
+            FE_DLR_SetPlaneSize(vpp_obj, dlr_id, &res, CropWpl);
+            FE_DLR_SetVPDMX(vpp_obj, &res, 1, 0);
+            FE_DLR_SetDummyTG(vpp_obj, &res, 1, 0);
+            FE_DLR_SetVPDMX(vpp_obj, &res, 0, 0);
+            FE_DLR_SetDummyTG(vpp_obj, &res, 0, 0);
+            updateVPSize(vpp_obj, plane);
+
+            scl_res.IHRes = plane->ref_win.width; /* resolution before scaling */
+            scl_res.IVRes = plane->ref_win.height;
+            scl_res.OHRes = chan->disp_win.width; /* resolution after scaling */
+            scl_res.OVRes = chan->disp_win.height;
+            scl_ctrl.HScalePos = VPP_SCL_HSCALE_AUTO;
+            scl_ctrl.InputClr = 0; /* YUV input for none-OSD plane, ignore CSC in scaler */
+            scl_ctrl.OsdInput = 0; /* non-OSD input (without alpha) */
+            scl_ctrl.NLEn = 0; /* linear horizontal scaling mode */
+            scl_ctrl.CenterFrac = 0; /* center value */
+            scl_ctrl.BitMode = chan->scl_in_out_mode; /* input & output mode, depending on configuration */
+            scl_ctrl.I565 = 0;
+            scl_ctrl.HTapNum = 12;
+            scl_ctrl.VTapNum = 8;
+            scl_ctrl.DynamicLoad = 1; /* dynamically update coefficient table */
+            scl_ctrl.ForceSel = 0;
+            scl_ctrl.HSclMode = -1;
+            scl_ctrl.VSclMode = -1;
+            frc_res.HRes = scl_res.IHRes;
+            frc_res.VRes = scl_res.IVRes;
+            /* update scaling mode according to down-scaling ratio */
+            plane->mode = MODE_INLINE;
+            FRC_SCL_SetDeLrstDelay(vpp_obj, scl_id, 80);
+            FRC_SCL_SetWorkMode(vpp_obj, scl_id, plane->mode);
+            FRC_SCL_SetSclCtrlParams(vpp_obj, scl_id, &scl_res, &scl_ctrl);
+            FRC_SCL_SetFrcParams(vpp_obj, scl_id, &frc_res);
+
+            /*program for detail scaler*/
+            FRC_SCL_SetDeLrstDelay(vpp_obj, VPP_FRC_SCL_DETAIL, 80);
+            FRC_SCL_SetWorkMode(vpp_obj, VPP_FRC_SCL_DETAIL, plane->mode);
+            FRC_SCL_SetSclCtrlParams(vpp_obj, VPP_FRC_SCL_DETAIL, &scl_res, &scl_ctrl);
+            FRC_SCL_SetFrcParams(vpp_obj, VPP_FRC_SCL_DETAIL, &frc_res);
+
+            THINVPP_CPCB_SetPlaneSourceWindow(vpp_obj, cpcbID, chan->dvlayerID,
+                plane->actv_win.x, plane->actv_win.y, plane->actv_win.width, plane->actv_win.height);
+            THINVPP_CPCB_SetPlaneBGWindow(vpp_obj, cpcbID, chan->dvlayerID,
+                plane->ref_win.x, plane->ref_win.y, plane->ref_win.width, plane->ref_win.height);
+
+            /* start data loader DMA to load display content */
+            vpp_obj->dv[CPCB_1].curr_cpcb_vbi_dma_cfgQ->len += START_2DDMA(plane->dmaRdhubID, plane->dmaRID,
+                (unsigned int)frame_addr, pinfo->m_buf_stride, plane->wpl*8, plane->actv_win.height,
+                (unsigned int (*)[2])(vpp_obj->dv[CPCB_1].curr_cpcb_vbi_dma_cfgQ->addr+vpp_obj->dv[CPCB_1].curr_cpcb_vbi_dma_cfgQ->len*2));
+
+            /* start read-back data loader */
+            FE_DLR_EnableChannel(vpp_obj, dlr_id, 1);
+
             plane->status = STATUS_DISP;
             break;
 
         case STATUS_DISP:
             /* start data loader DMA to load display content */
-            dma_logo_frame(vpp_obj);
+            vpp_obj->dv[CPCB_1].curr_cpcb_vbi_dma_cfgQ->len += START_2DDMA(plane->dmaRdhubID, plane->dmaRID,
+                (unsigned int)frame_addr, pinfo->m_buf_stride, plane->wpl*8, plane->actv_win.height,
+                (unsigned int (*)[2])(vpp_obj->dv[CPCB_1].curr_cpcb_vbi_dma_cfgQ->addr+vpp_obj->dv[CPCB_1].curr_cpcb_vbi_dma_cfgQ->len*2));
 
             /* start read-back data loader */
-            set_bcm_cmd(vpp_obj, bcm_cmd_n, bcm_cmd_n_len);
+            FE_DLR_EnableChannel(vpp_obj, dlr_id, 1);
 
+            break;
+
+        case STATUS_STOP:
+            THINVPP_CPCB_SetPlaneSourceWindow(vpp_obj, cpcbID, chan->dvlayerID, 0, 0, 0, 0);
+            THINVPP_CPCB_SetPlaneBGWindow(vpp_obj, cpcbID, chan->dvlayerID, 0, 0, 0, 0);
+            plane->status = STATUS_INACTIVE;
             break;
 
         default:
@@ -496,8 +245,6 @@ void THINVPP_CPCB_ISR_service(THINVPP_OBJ *vpp_obj, int cpcbID, volatile int *cp
 {
     DV *pDV;
     int params[2];
-	static int cpcb_isr_count=0;
-	cpcb_isr_count++;
 
     if (!vpp_obj)
         return;
@@ -514,42 +261,15 @@ void THINVPP_CPCB_ISR_service(THINVPP_OBJ *vpp_obj, int cpcbID, volatile int *cp
 
     case STATUS_ACTIVE:
         /*when change cpcb output resolution, status was set to inactive, Dhub should be stopped at this moment*/
-        if (cpcbID != CPCB_1)
-            break;
 
 		/* stop fast-logo */
 		if(stop_flag == 1)
 		{
-			prepareQ(vpp_obj, cpcbID);
-
-			/* set resolution to RESET mode */
-			params[0] = CPCB_1;
-			params[1] = RES_RESET;
-
-			VPP_SetCPCBOutputResolution(vpp_obj, params);
-			set_bcm_cmd(vpp_obj, &bcm_cmd_z[0], bcm_cmd_z_len);
-
-			toggleQ(vpp_obj, cpcbID);
-
-			/* disable interrupt */
-			THINVPP_Enable_ISR_Interrupt(vpp_obj, CPCB_1, 0);
-
-			pDV->status = STATUS_INACTIVE;
-			stop_flag++;
-
+			pDV->status = STATUS_STOP;
 			break;
 		}
 
-		/* display fast-logo */
-		if (*cpcb_start_flag == 3)
-		{
-			*cpcb_start_flag = 4;
-		}
-		else
-		{
-			*cpcb_start_flag++;
-			prepareQ(vpp_obj, cpcbID);
-		}
+		prepareQ(vpp_obj, cpcbID);
 
         startChannelDataLoader(vpp_obj, CHAN_MAIN);
 
@@ -558,19 +278,18 @@ void THINVPP_CPCB_ISR_service(THINVPP_OBJ *vpp_obj, int cpcbID, volatile int *cp
         break;
 
     case STATUS_STOP:
-        if (cpcbID != CPCB_1)
-            break;
-
         prepareQ(vpp_obj, cpcbID);
 
+        /* set resolution to RESET mode */
         params[0] = CPCB_1;
         params[1] = RES_RESET;
         VPP_SetCPCBOutputResolution(vpp_obj, params);
 
-        if(!(stop_flag > 0))
-            THINVPP_CFGQ_To_CFGQ(vpp_obj->dv[CPCB_1].curr_cpcb_vbi_dma_cfgQ, vpp_obj->dv[CPCB_1].curr_cpcb_vbi_bcm_cfgQ);
-
+        THINVPP_CFGQ_To_CFGQ(vpp_obj->dv[CPCB_1].curr_cpcb_vbi_dma_cfgQ, vpp_obj->dv[CPCB_1].curr_cpcb_vbi_bcm_cfgQ);
         toggleQ(vpp_obj, cpcbID);
+
+        /* disable interrupt */
+        THINVPP_Enable_ISR_Interrupt(vpp_obj, CPCB_1, 0);
         break;
 
     default:
@@ -586,20 +305,11 @@ void THINVPP_CPCB_ISR_service(THINVPP_OBJ *vpp_obj, int cpcbID, volatile int *cp
 void THINVPP_Enable_ISR_Interrupt(THINVPP_OBJ *vpp_obj, int cpcbID, int flag)
 {
     if (cpcbID == CPCB_1){
+        flag = flag? 1: 0;
         /* configure and enable CPCB0 interrupt */
         semaphore_cfg(vpp_obj->pSemHandle, avioDhubSemMap_vpp_vppCPCB0_intr, 1, 0);
         semaphore_pop(vpp_obj->pSemHandle, avioDhubSemMap_vpp_vppCPCB0_intr, 1);
         semaphore_clr_full(vpp_obj->pSemHandle, avioDhubSemMap_vpp_vppCPCB0_intr);
-
-        if (flag)
-        {
-            if (!vbi_init)
-            {
-                init_vbi(vpp_obj);
-            }
-            vbi_init = 1;
-            flag = 1;
-        }
         semaphore_intr_enable(vpp_obj->pSemHandle, avioDhubSemMap_vpp_vppCPCB0_intr, 0, flag, 0, 0, 0);
     }
 

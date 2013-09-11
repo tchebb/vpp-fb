@@ -42,8 +42,6 @@ typedef struct BCMBUF_T {
     unsigned int *dv1_head;      // head of BCM sub-buffer used for CPCB0
 #if LOGO_USE_SHM
     unsigned phys;
-#else
-    unsigned int *dv3_head;      // head of BCM sub-buffer used for CPCB2
 #endif
     unsigned int *tail;          // tail of the buffer, used for checking wrap around
     unsigned int *writer;        // write pointer of queue, update with shadow_tail with commit

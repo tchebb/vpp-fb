@@ -25,6 +25,9 @@
 
 #include "thinvpp_module.h"
 #include "thinvpp_apifuncs.h"
+#include "thinvpp_scl.h"
+#include "thinvpp_cpcb.h"
+#include "thinvpp_be.h"
 #include "thinvpp_isr.h"
 
 #include <linux/mm.h>
@@ -199,6 +202,8 @@ int MV_THINVPP_Reset(void)
         thinvpp_obj->plane[i].actv_win.y = 0;
         thinvpp_obj->plane[i].actv_win.width = 0;
         thinvpp_obj->plane[i].actv_win.height = 0;
+
+        thinvpp_obj->plane[i].ref_win = thinvpp_obj->plane[i].actv_win;
     }
 
     /* reset channels */
@@ -285,6 +290,23 @@ int MV_THINVPP_Config(void)
             thinvpp_obj->plane[i].offline_dmaWdhubID = (int)(&VPP_dhubHandle);
             thinvpp_obj->plane[i].offline_dmaRID = avioDhubChMap_vpp_MV_FRC_R; // offline readd-back DMA
             thinvpp_obj->plane[i].offline_dmaRdhubID = (int)(&VPP_dhubHandle);
+#if (BERLIN_CHIP_VERSION != BERLIN_BG2CD_A0)
+        } else if (i == PLANE_PIP){
+            thinvpp_obj->plane[i].dmaRID = avioDhubChMap_vpp_PIP_R; // inline read DMA
+            thinvpp_obj->plane[i].dmaRdhubID = (int)(&VPP_dhubHandle);
+            thinvpp_obj->plane[i].offline_dmaWID = avioDhubChMap_vpp_PIP_FRC_W; // offline write-back DMA
+            thinvpp_obj->plane[i].offline_dmaWdhubID = (int)(&VPP_dhubHandle);
+            thinvpp_obj->plane[i].offline_dmaRID = avioDhubChMap_vpp_PIP_FRC_R; // offline readd-back DMA
+            thinvpp_obj->plane[i].offline_dmaRdhubID = (int)(&VPP_dhubHandle);
+        } else if (i == PLANE_AUX){
+            thinvpp_obj->plane[i].offline_dmaWID = avioDhubChMap_vpp_AUX_FRC_W; // AUXoffline write-back DMA
+            thinvpp_obj->plane[i].offline_dmaWdhubID = (int)(&VPP_dhubHandle);
+            thinvpp_obj->plane[i].offline_dmaRID = avioDhubChMap_vpp_AUX_FRC_R; // AUX offline read-back DMA
+            thinvpp_obj->plane[i].offline_dmaRdhubID = (int)(&VPP_dhubHandle);
+#endif // (BERLIN_CHIP_VERSION != BERLIN_BG2CD_A0)
+        } else if (i == PLANE_GFX0){
+            thinvpp_obj->plane[i].dmaRID = avioDhubChMap_ag_GFX_R; // inline read DMA
+            thinvpp_obj->plane[i].dmaRdhubID = (int)(&AG_dhubHandle);
         }
 
     } // <- config FE planes
@@ -455,6 +477,11 @@ int MV_THINVPP_OpenDispWindow(int planeID, VPP_WIN *win, VPP_WIN_ATTR *attr)
     chan->disp_win.y = win->y;
     chan->disp_win.width = win->width;
     chan->disp_win.height = win->height;
+
+    if (plane->ref_win.width == 0)
+        plane->ref_win.width = chan->disp_win.width;
+    if (plane->ref_win.height == 0)
+        plane->ref_win.height = chan->disp_win.height;
 
     if (attr){
         chan->disp_win_attr.bgcolor = attr->bgcolor;

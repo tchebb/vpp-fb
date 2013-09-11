@@ -38,7 +38,6 @@
 #include "api_dhub.h"
 #include "api_avio_dhub.h"
 #include "memmap.h"
-#include "bcm_cmds.h"
 
 #if LOGO_USE_SHM
 #include "shm_api.h"
@@ -254,7 +253,7 @@ static int vpp_fb_set_par(struct fb_info *info)
 	{
 		char *shm = (char *) par->fastlogo_ctx.logoBuf;
 		unsigned shm_phys = (unsigned) par->fastlogo_ctx.mapaddr;
-		par->fastlogo_ctx.bcmQ_len = bcmQ_len;
+		par->fastlogo_ctx.bcmQ_len = BCM_BUFFER_SIZE;
 		par->fastlogo_ctx.dmaQ_len = 8*8;
 		par->fastlogo_ctx.cfgQ_len = 8*8;
 		par->fastlogo_ctx.bcmQ = shm + par->fastlogo_ctx.length;
@@ -264,13 +263,9 @@ static int vpp_fb_set_par(struct fb_info *info)
 		par->fastlogo_ctx.dmaQ_phys = par->fastlogo_ctx.bcmQ_phys + par->fastlogo_ctx.bcmQ_len;
 		par->fastlogo_ctx.cfgQ_phys = par->fastlogo_ctx.dmaQ_phys + par->fastlogo_ctx.dmaQ_len;
 
-		// pre-load vpp commands
-		memcpy(par->fastlogo_ctx.bcmQ, bcm_cmd_0, bcm_cmd_0_len);
+		memset(par->fastlogo_ctx.bcmQ, 0, BCM_BUFFER_SIZE);
 
-		// pre-load logo frame dma commands
-		logo_frame_dma_cmd[2] = shm_phys;
 		vbuf.m_pbuf_start = (void *) shm_phys;
-		memcpy(par->fastlogo_ctx.dmaQ, logo_frame_dma_cmd, logo_dma_cmd_len);
 	}
 #else
 	par->fastlogo_ctx.logoBuf = kmalloc(par->fastlogo_ctx.length, GFP_KERNEL);
@@ -288,8 +283,7 @@ static int vpp_fb_set_par(struct fb_info *info)
 		return err;
 	}
 	outer_cache.flush_range(virt_to_phys(par->fastlogo_ctx.logoBuf), virt_to_phys(par->fastlogo_ctx.logoBuf)+par->fastlogo_ctx.length);
-	logo_frame_dma_cmd[2] = virt_to_phys(par->fastlogo_ctx.logoBuf);
-	vbuf.m_pbuf_start = (void *) logo_frame_dma_cmd[2];
+	vbuf.m_pbuf_start = virt_to_phys(par->fastlogo_ctx.logoBuf);
 #endif
 
 	// initialize buffer
@@ -325,12 +319,6 @@ static int vpp_fb_set_par(struct fb_info *info)
 		gs_trace("vec_num:%5d, err:%8x\n", IRQ_DHUBINTRAVIO0, err);
 		return err;
 	}
-
-	/*
-	 * using 3 for debugging legacy; should change to a more reasonable
-	 * number after clean-up
-	 */
-	par->cpcb_start_flag = 3;
 
 	/* clean up and enable ISR */
 	VPP_dhub_sem_clear();

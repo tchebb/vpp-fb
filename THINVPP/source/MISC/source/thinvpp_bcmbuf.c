@@ -31,6 +31,8 @@
 #include <asm/outercache.h>
 #include <asm/io.h>
 
+#define FLUSH_DCACHE_RANGE(start, size) __cpuc_flush_dcache_area(start, size)
+
 static void inner_outer_flush_dcache_area(void *addr, size_t length)
 {
 	phys_addr_t start, end;
@@ -154,7 +156,6 @@ void THINVPP_BCMBUF_Select(BCMBUF *pbcmbuf, int subID)
     return;
 }
 
-#if !LOGO_USE_SHM
 /*********************************************************
  * FUNCTION: write register address (4 bytes) and value (4 bytes) to the buffer
  * PARAMS: *buf - pointer to the buffer descriptor
@@ -168,10 +169,7 @@ int THINVPP_BCMBUF_Write(BCMBUF *pbcmbuf, unsigned int address, unsigned int val
     unsigned int *end;
 
     /*if not enough space for storing another 8 bytes, wrap around happens*/
-    if (pbcmbuf->subID == CPCB_1)
-        end = pbcmbuf->dv3_head;
-    else
-        end = pbcmbuf->tail;
+    end = pbcmbuf->tail;
 
     if(pbcmbuf->writer == end){
         /*the buffer is full, no space for wrap around*/
@@ -186,7 +184,6 @@ int THINVPP_BCMBUF_Write(BCMBUF *pbcmbuf, unsigned int address, unsigned int val
 
     return MV_THINVPP_OK;
 }
-#endif
 
 #if LOGO_USE_SHM
 int THINVPP_CFGQ_Set(DHUB_CFGQ *cfgQ, void *addr, unsigned phys, int size)
@@ -310,8 +307,6 @@ int THINVPP_BCMBUF_To_CFGQ(BCMBUF *pbcmbuf, DHUB_CFGQ *cfgQ)
 #else
     if (pbcmbuf->subID == CPCB_1)
         start = pbcmbuf->dv1_head;
-    else if (pbcmbuf->subID == CPCB_3)
-        start = pbcmbuf->dv3_head;
     else
         start = pbcmbuf->head;
 #endif

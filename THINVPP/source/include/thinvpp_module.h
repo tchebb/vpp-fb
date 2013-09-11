@@ -190,6 +190,8 @@ typedef struct PLANE_T {
 
     VPP_WIN actv_win;   // plane display content location and size in reference window
                         // this information is a copy from frame descriptor for register updating purpose.
+    VPP_WIN ref_win;   // plane display reference window
+
     VBUF_INFO * pinfo;
 } PLANE;
 
@@ -226,6 +228,165 @@ typedef struct VOUT_T {
     int dvID;        // ID of the DV, which this VOUT belongs to
 } VOUT;
 
+/************************************************/
+/************** FE data structures **************/
+/************************************************/
+
+/* structure of FE block */
+typedef struct FE_T {
+    /* NR register local copy */
+    unsigned int NrCtrl;
+    unsigned int NrMode;
+    unsigned int NrYMode;
+    unsigned int NrCMode;
+
+    unsigned int CarCtrl1Regs;
+    unsigned int CarCtrl2Regs;
+    unsigned int NeFbCtrl;
+} FE;
+
+/************************************************/
+/************** SCL data structures **************/
+/************************************************/
+
+/* structure of SCL block */
+typedef struct SCL_T {
+    /*FRC scaler local buffer*/
+#if (BERLIN_CHIP_VERSION >= BERLIN_C_2)
+    unsigned int VppFrcSclAlphaCtrl0;
+    unsigned int VppFrcSclAlphaCtrl1;
+#if (BERLIN_CHIP_VERSION >= BERLIN_BG2)
+    unsigned int VppFrcSclAlphaCtrl2;
+#endif
+#endif
+#if (BERLIN_CHIP_VERSION >= BERLIN_B_0)
+    unsigned int VppFrcSclBeSwitch0;
+    unsigned int VppFrcSclBeSwitch1;
+#else
+    unsigned int VppFrcSclBeSwitch;
+#endif
+} SCL;
+
+/************************************************/
+/************** CPCB data structures **************/
+/************************************************/
+
+/* structure of CPCB block */
+typedef struct CPCB_T {
+    /*CPCB interlacer local buffer*/
+    unsigned int VppCpcb0IntCtrl;
+#if (BERLIN_CHIP_VERSION >= BERLIN_B_0)
+    unsigned int Cpcb1SrcAlphaPol;
+    unsigned int Cpcb1BgAlphaPol;
+    unsigned int Cpcb2SrcAlphaPol;
+    unsigned int Cpcb2BgAlphaPol;
+    unsigned int VppCpcb2IntCtrl;
+#else
+    unsigned int VppCpcb1IntCtrl;
+#endif
+#if (BERLIN_CHIP_VERSION >= BERLIN_BG2)
+    unsigned int QtcCtrl1;
+#endif
+    unsigned int *GmBcmBuf[2];
+    unsigned int GmBcmBufWIdx;
+    unsigned int GmBcmBufRIdx;
+} CPCB;
+
+/************************************************/
+/************** BE data structures **************/
+/************************************************/
+
+typedef struct ENC_T {
+   // DACs control
+   unsigned int SdDacMode;
+   unsigned int HdDacMode;
+
+#if (BERLIN_CHIP_VERSION >= BERLIN_BG2_B0)
+    /* BE Encoder DACs Ctrl0 */
+    unsigned int DacCtrl0_a;
+    unsigned int DacCtrl0_b;
+    unsigned int DacCtrl0_c;
+    unsigned int DacCtrl0_d;
+#endif
+
+   // SD/HD WSS/CGMS control
+   unsigned int SdWssCgmsCtrl;
+   unsigned int HdWssCgmsCtrl;
+
+   // mute control
+   unsigned int EncIOMuteCtrl;
+
+   // HD Output control0
+   unsigned int HdCtrl0;
+} ENC;
+
+typedef struct HDMI_TX_DRV_T
+{
+    unsigned char       acrCtrl;
+    unsigned char       audCtrl;
+    unsigned char       i2sCtrl;
+    unsigned char       gcpCfg0;
+    unsigned char       gcpCfg1;
+    unsigned char       videoCtrl;
+    unsigned char       hdmiCtrl;
+    unsigned char       avMuteCtrl;
+    unsigned char       hostPktCtrl0;
+    unsigned char       hostPktCtrl1;
+    unsigned char       hostPktData[6][32];
+    unsigned int      hostPktCfg[6];
+} HDMI_TX_DRV;
+typedef struct HDMI_HDCP_DRV_T
+{
+    unsigned char       ctrlReg;
+    unsigned char       stsReg;
+    unsigned int      srmData;
+} HDMI_HDCP_DRV;
+
+/* structure of BE block */
+typedef struct BE_T {
+    ENC enc;
+#if (BERLIN_CHIP_VERSION >= BERLIN_BG2_Z2)
+    unsigned char* VppBeVopLVDSMappingTab;
+    unsigned int VppBeVopLVDSFrmtCtrl;
+#endif
+#if (BERLIN_CHIP_VERSION >= BERLIN_BG2_A0)
+    unsigned short *VppBeVopLVDSGammaLUT[3];
+    unsigned int VppBeVopLVDSDeGammaLUTSt;
+    unsigned int VppBeVopLVDSGammaLUTSt;
+    unsigned int VppBeVopLVDSDeGammaBypass;
+    unsigned int VppBeVopLVDSDeGammaCtrl;
+    unsigned int VppBeVopLVDSGammaCtrl;
+    unsigned int *LvdsGmBcmBuf[2];
+    unsigned int LvdsGmBcmBufWIdx;
+    unsigned int LvdsGmBcmBufRIdx;
+#endif
+    // Addr of Hdmi Tx data store
+    unsigned int hdmiTx;
+
+    // CEC enable control
+    int        enableCec;
+    // CEC feature configuration
+    unsigned int      cecFeatureSupportCfg;
+    // Addr of Hdmi Cec data store
+    unsigned int      hdmiCec;
+    // HDMI Tx driver data
+    HDMI_TX_DRV     hdmiTxDrv;
+
+    // HDCP driver data
+    HDMI_HDCP_DRV   hdmiHdcpDrv;
+
+    // HDMI Interrupt Status for DSR handling
+    unsigned char           hdmiIntSts;
+    unsigned char           hdmiFrmIntrTrig;
+
+    // Task control flag
+    unsigned char           hdmiTaskExit;
+    unsigned char           cecTaskExit;
+
+    // CPCB0 Interrupt status for DSR handling
+    unsigned char           cpcb0IntSts;
+} BE;
+
 
 /************************************************/
 /*********** VPP object data structures *********/
@@ -240,6 +401,11 @@ typedef struct THINVPP_OBJ_T {
 
     unsigned int base_addr;       // VPP object hardware base address
     HDL_semaphore *pSemHandle; // semaphore handler of CPCB semaphores
+
+    FE fe;               // FE hardware related settings
+    SCL scl;             // SCL hardware related settings
+    CPCB cpcb;           // CPCB hardware related settings
+    BE be;               // BE hardware related settings
 
 #if (BERLIN_CHIP_VERSION != BERLIN_BG2CD_A0)
     int dhub_cmdQ[avioDhubChMap_vpp_TT_R];
