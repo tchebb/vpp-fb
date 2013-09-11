@@ -92,19 +92,8 @@ static int startChannelDataLoader(THINVPP_OBJ *vpp_obj, int chanID)
 
         switch (plane->status) {
         case STATUS_ACTIVE:
-#if 0
-#if LOGO_USE_SHM
-            // first vpp commands are pre-loaded
-            set_bcm_cmd_0(vpp_obj, bcm_cmd_0_len);
-#else
-            set_bcm_cmd(vpp_obj, bcm_cmd_0, bcm_cmd_0_len);
-#endif
-            /* start data loader DMA to load display content */
-            vpp_obj->dv[CPCB_1].curr_cpcb_vbi_dma_cfgQ->len += START_2DDMA(plane->dmaRdhubID, plane->dmaRID,
-                (unsigned int)frame_addr, pinfo->m_buf_stride, plane->wpl*8, plane->actv_win.height,
-                (unsigned int (*)[2])(vpp_obj->dv[CPCB_1].curr_cpcb_vbi_dma_cfgQ->addr+vpp_obj->dv[CPCB_1].curr_cpcb_vbi_dma_cfgQ->len*2));
-#endif
-            //set_bcm_cmd(vpp_obj, bcm_cmd_0, 480);
+
+            // TODO: Figure out what the initial 480 bytes in the hardcoded command buffer were
 
             chan->disp_win_attr.bgcolor = pinfo->bgcolor;
             chan->disp_win_attr.alpha = pinfo->alpha;
