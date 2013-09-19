@@ -120,8 +120,6 @@ static int startChannelDataLoader(THINVPP_OBJ *vpp_obj, int chanID)
             FE_DLR_SetPlaneSize(vpp_obj, dlr_id, &res, CropWpl);
             FE_DLR_SetVPDMX(vpp_obj, &res, 1, 0);
             FE_DLR_SetDummyTG(vpp_obj, &res, 1, 0);
-            FE_DLR_SetVPDMX(vpp_obj, &res, 0, 0);
-            FE_DLR_SetDummyTG(vpp_obj, &res, 0, 0);
             updateVPSize(vpp_obj, plane);
 
             scl_res.IHRes = plane->ref_win.width; /* resolution before scaling */
