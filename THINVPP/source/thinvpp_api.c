@@ -236,7 +236,6 @@ int MV_THINVPP_Reset(void)
     /* reset VBI BCM buffer */
     THINVPP_BCMBUF_Reset(&thinvpp_obj->vbi_bcm_buf[0]);
     thinvpp_obj->pVbiBcmBuf = &(thinvpp_obj->vbi_bcm_buf[0]);
-    thinvpp_obj->hdmi_mute = 0;
 
 #if !LOGO_USE_SHM
     // do no need double buffers for dhub queues

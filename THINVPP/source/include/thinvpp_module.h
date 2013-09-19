@@ -413,7 +413,6 @@ typedef struct THINVPP_OBJ_T {
     UINT32 dhub_cmdQ[avioDhubChMap_vpp_SPDIF_W];
 #endif //(BERLIN_CHIP_VERSION != BERLIN_BG2CD_A0)
 
-    int hdmi_mute;
     BCMBUF vbi_bcm_buf[2];
     BCMBUF *pVbiBcmBufCpcb[VPP_CPCB_MAX];
     BCMBUF *pVbiBcmBuf;    //pointer to the VBI BCM buffer in use
