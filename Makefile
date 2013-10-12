@@ -1,6 +1,6 @@
-include $(srctree)/arch/arm/mach-mv88de3100/mv88de3100.mk
+include $(srctree)/arch/arm/mach-berlin/mv88de3100.mk
 
-MWD=$(srctree)/arch/arm/mach-mv88de3100
+MWD=$(srctree)/arch/arm/mach-berlin
 PWD=$(MWD)/modules/vpp_fb
 
 HEADER_PATH :=  \
@@ -8,6 +8,7 @@ HEADER_PATH :=  \
 	-I$(MWD)/include/mach \
 	-I$(MWD)/modules/shm \
 	-I$(MWD)/modules/cc  \
+	-I$(MWD)/modules/nfc \
 	-I$(MWD)/modules/pe \
 	-I$(MWD)/modules/pe/gsinc \
 	-I$(MWD)/modules/pe/gsinc/$(FIRMWARE) \
@@ -16,7 +17,7 @@ HEADER_PATH :=  \
 
 #ccflags-y	+= -DLOGO_ENABLE_MAIN=1 -DLOGO_ENABLE_PIP=0 -DLOGO_ENABLE_AUX=0
 #ccflags-y	+= -DLOGO_PROC_FS=1 -DLOGO_TIME_PROFILE=1
-ifeq ($(CONFIG_MV88DE3100_SHM),y)
+ifeq ($(CONFIG_BERLIN_SHM),y)
 ccflags-y	+= -DLOGO_USE_SHM=1
 endif
 ccflags-y	+= $(MV_DEFINE) $(HEADER_PATH)
@@ -34,11 +35,11 @@ FASTLOGO_SOURCE += $(wildcard $(PWD)/THINVPP/source/MISC/source/*.c)
 FASTLOGO_SOURCE += $(wildcard $(PWD)/THINVPP/source/PORTED/source/*.c)
 
 FASTLOGO_OBJ += $(patsubst $(PWD)/%.c,%.o,$(FASTLOGO_SOURCE))
-ifeq ($(CONFIG_MV88DE3100_PE_MODULE),y)
+ifeq ($(CONFIG_BERLIN_PE),y)
 #use the avio_dhub_drv in pe module
 else
 FASTLOGO_OBJ += DHUB/source/avio_dhub_drv.o
 endif
 
-obj-$(CONFIG_MV88DE3100_FBDEV) += galois_fastlogo.o
+obj-$(CONFIG_BERLIN_FBDEV) += galois_fastlogo.o
 galois_fastlogo-objs := vpp_fb.o $(FASTLOGO_OBJ)

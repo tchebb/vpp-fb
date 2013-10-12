@@ -31,6 +31,7 @@
 #include <asm/outercache.h>
 #include <asm/page.h>
 #include <asm/io.h>
+#include <mach/irqs.h>
 
 #include "galois_io.h"
 #include "thinvpp_api.h"
