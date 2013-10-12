@@ -27,6 +27,7 @@
 #include <linux/delay.h> // for msleep()
 #include <linux/platform_device.h>
 #include <linux/fb.h>
+#include <linux/videodev2.h>
 #include <asm/cacheflush.h> // for __cpuc_flush_dcache_area(logoBuf, length);
 #include <asm/outercache.h>
 #include <asm/page.h>
@@ -87,13 +88,14 @@ struct vpp_fb_par {
 };
 
 static struct fb_fix_screeninfo vpp_fb_fix __devinitdata = {
-	.id        = "VPP FB", 
-	.type      = FB_TYPE_PACKED_PIXELS,
-	.visual    = FB_VISUAL_TRUECOLOR,
-	.xpanstep  = 1,
-	.ypanstep  = 1,
-	.ywrapstep = 1, 
-	.accel     = FB_ACCEL_NONE,
+	.id           = "VPP FB",
+	.capabilities = FB_CAP_FOURCC,
+	.type         = FB_TYPE_PACKED_PIXELS,
+	.visual       = FB_VISUAL_TRUECOLOR,
+	.xpanstep     = 1,
+	.ypanstep     = 1,
+	.ywrapstep    = 1,
+	.accel        = FB_ACCEL_NONE,
 };
 
 static struct fb_var_screeninfo vpp_fb_var __devinitdata = {
@@ -102,22 +104,7 @@ static struct fb_var_screeninfo vpp_fb_var __devinitdata = {
 	.xres_virtual = 720,
 	.yres_virtual = 480,
 	.bits_per_pixel = 16,
-	.red = {
-		.offset = 0,
-		.length = 4,
-	},
-	.green = {
-		.offset = 4,
-		.length = 4,
-	},
-	.blue = {
-		.offset = 8,
-		.length = 4,
-	},
-	.transp = {
-		.offset = 12,
-		.length = 4,
-	},
+	.grayscale = V4L2_PIX_FMT_YUYV,
 };
 
 static irqreturn_t fastlogo_devices_vpp_isr(int irq, void *dev_id)

@@ -106,7 +106,7 @@ static int startChannelDataLoader(THINVPP_OBJ *vpp_obj, int chanID)
             THINVPP_CPCB_SetPlaneAttribute(vpp_obj, cpcbID, chan->dvlayerID, chan->disp_win_attr.alpha, chan->disp_win_attr.bgcolor);
 
             plane_fmt.SrcFmt = SRCFMT_YUV422;
-            plane_fmt.FmtOrder = ORDER_UYVY;
+            plane_fmt.FmtOrder = ORDER_YUYV;
             FE_DLR_SetPlaneDataFmt(vpp_obj, dlr_id, &plane_fmt);
 
             FRC_SCL_ChopCtrl(vpp_obj, scl_id, 0);
