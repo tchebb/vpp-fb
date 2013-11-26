@@ -1,0 +1,44 @@
+diff --git a/arch/arm/mach-berlin/Kconfig b/arch/arm/mach-berlin/Kconfig
+index 130009e..b5cc66e 100644
+--- a/arch/arm/mach-berlin/Kconfig
++++ b/arch/arm/mach-berlin/Kconfig
+@@ -129,6 +129,16 @@ config BERLIN_FASTLOGO
+ 	help
+ 	  Enable support for fast logo
+ 
++config BERLIN_FBDEV
++	tristate "VPP framebuffer device support"
++	depends on FB
++	select FB_CFB_FILLRECT
++	select FB_CFB_COPYAREA
++	select FB_CFB_IMAGEBLIT
++	default n
++	help
++	  I have no idea what VPP stands for.
++
+ endmenu
+ 
+ endif
+diff --git a/arch/arm/mach-berlin/Makefile b/arch/arm/mach-berlin/Makefile
+index 8fd388b..3e05375 100644
+--- a/arch/arm/mach-berlin/Makefile
++++ b/arch/arm/mach-berlin/Makefile
+@@ -13,3 +13,4 @@ obj-$(CONFIG_BERLIN_GPU) += modules/gpu/
+ obj-$(CONFIG_BERLIN_GPU3D) += modules/gpu3D/
+ obj-$(CONFIG_BERLIN_PE) += modules/pe/
+ obj-$(CONFIG_BERLIN_FASTLOGO) += modules/fastlogo/
++obj-$(CONFIG_BERLIN_FBDEV) += modules/vpp_fb/
+diff --git a/arch/arm/mach-berlin/mv88de3100.mk b/arch/arm/mach-berlin/mv88de3100.mk
+index 2b69ae4..50b7b80 100644
+--- a/arch/arm/mach-berlin/mv88de3100.mk
++++ b/arch/arm/mach-berlin/mv88de3100.mk
+@@ -3,6 +3,9 @@
+ MV_DEFINE := -DBERLIN -DSoC_Galois -D__LINUX_KERNEL__ -D__CODE_LINK__=0 -DCPUINDEX=0
+ MV_DEFINE += -DBERLIN_B_0=0x1000 -DBERLIN_C_0=0x2000 -DBERLIN_BG2=0x3000 -DBERLIN_BG2_Z2=0x3010 -DBERLIN_BG2_A0=0x3020 -DBERLIN_BG2CD_A0=0x3100 -DBERLIN_BG3=0x4000
+ 
++# Make compilation work
++MV_DEFINE += -DBERLIN_C_2=0x3000 -DBERLIN_BG2_B0=0x3100
++
+ # define BERLIN_CHIP_VERSION
+ ifeq ($(CONFIG_BERLIN2_Z1),y)
+ 	MV_DEFINE += -DBERLIN_CHIP_VERSION=BERLIN_BG2
