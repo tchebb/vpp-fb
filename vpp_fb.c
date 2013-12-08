@@ -77,6 +77,11 @@ void VPP_dhub_sem_clear(void);
 #define gs_error(...)   printk(KERN_ERR VPP_FB_DEVICE_TAG __VA_ARGS__)
 
 /*******************************************************************************
+  Drive Data
+  */
+static char *mode_option; 
+
+/*******************************************************************************
   Module Variable
   */
 
@@ -91,10 +96,10 @@ struct vpp_fb_par {
 
 static struct fb_fix_screeninfo vpp_fb_fix __devinitdata = {
 	.id           = "VPP FB",
-	.capabilities = FB_CAP_FOURCC,
+	//.capabilities = FB_CAP_FOURCC,
 	.type         = FB_TYPE_PACKED_PIXELS,
-	//.visual       = FB_VISUAL_TRUECOLOR,
-	.visual       = FB_VISUAL_FOURCC,
+	.visual       = FB_VISUAL_TRUECOLOR,
+	//.visual       = FB_VISUAL_FOURCC,
 	.xpanstep     = 1,
 	.ypanstep     = 1,
 	.ywrapstep    = 1,
@@ -107,8 +112,16 @@ static struct fb_var_screeninfo vpp_fb_var __devinitdata = {
 	.xres_virtual = 720,
 	.yres_virtual = 480,
 	.bits_per_pixel = 16,
-	.grayscale = V4L2_PIX_FMT_YUYV /* Also called YUV422 */
-	//.grayscale = 0 /* Also called YUV422 */
+	//.grayscale = V4L2_PIX_FMT_YUYV /* Also called YUV422 */
+	.grayscale = 0, /* Also called YUV422 */
+    .red.offset = 0,
+    .red.length = 5,
+    .green.offset = 5,
+    .green.length = 6,
+    .blue.offset = 11,
+    .blue.length = 5,
+    .transp.offset = 16,
+    .transp.length = 0,
 };
 
 static irqreturn_t fastlogo_devices_vpp_isr(int irq, void *dev_id)
@@ -178,6 +191,7 @@ static void fastlogo_device_exit(struct fb_info *info)
 	gs_trace("dev exit done\n");
 }
 
+/* cannot change info->var, but must change *var to the closest support hw mode */
 static int vpp_fb_check_var(struct fb_var_screeninfo *var, struct fb_info *info)
 {
     /* TODO VINZ: Make this function so that we only support one mode for now */
@@ -190,9 +204,6 @@ static int vpp_fb_check_var(struct fb_var_screeninfo *var, struct fb_info *info)
         .grayscale = V4L2_PIX_FMT_YUYV,
     */
     
-	*var = info->var;
-	u_long line_length;
-
 	gs_info("vpp_fb_check_var was called!\n");
     gs_info(" .xres: %u\n", var->xres);
     gs_info(" .yres: %u\n", var->yres);
@@ -211,6 +222,22 @@ static int vpp_fb_check_var(struct fb_var_screeninfo *var, struct fb_info *info)
     gs_info(" .trans.offset: %u\n", var->transp.offset);
     gs_info(" .trans.length: %u\n", var->transp.length);
     gs_info(" .trans.msb_right: %u\n", var->transp.msb_right);
+
+    /* Fake this call for now, and just set it to whatever is requested */
+	//*var = info->var;
+
+    var->bits_per_pixel = info->var.bits_per_pixel;
+    var->red.offset = info->var.red.offset;
+    var->red.length = info->var.red.length;
+    var->green.offset = info->var.green.offset;
+    var->green.length = info->var.green.length;
+    var->blue.offset = info->var.blue.offset;
+    var->blue.length = info->var.blue.length;
+    var->transp.offset = info->var.transp.offset;
+    var->transp.length = info->var.transp.length;
+    var->grayscale = info->var.grayscale;
+
+    return 0;
 
 	/*
 	 *  FB_VMODE_CONUPDATE and FB_VMODE_SMOOTH_XPAN are equal!
@@ -234,7 +261,8 @@ static int vpp_fb_check_var(struct fb_var_screeninfo *var, struct fb_info *info)
     // FORCE for now, to the only video mode we support 
 
     var->xres = 720;
-    var->yres = 480;
+    if (var->yres != 576)
+        var->yres = 480;
     var->xres_virtual = var->xres;
     var->yres_virtual = var->yres;
     
@@ -248,6 +276,7 @@ static int vpp_fb_check_var(struct fb_var_screeninfo *var, struct fb_info *info)
     /* FOURCC mode ? */
     if (var->grayscale == V4L2_PIX_FMT_YUYV)
     {
+        gs_info("check var: setting to YUYV\n");
         /* YUYV == YUV422 */
         var->bits_per_pixel = 16;
 
@@ -266,16 +295,18 @@ static int vpp_fb_check_var(struct fb_var_screeninfo *var, struct fb_info *info)
         var->blue.msb_right = 0;
         var->transp.msb_right = 0;
     } else {
+        gs_info("check var: setting to RGB565\n");
         /* RGBA 4-4-4-4 */
         var->bits_per_pixel = 16;
         var->red.offset = 0;
-        var->red.length = 4;
-        var->green.offset = 4;
-        var->green.length = 4;
-        var->blue.offset = 8;
-        var->blue.length = 4;
-        var->transp.offset = 12;
-        var->transp.length = 4;
+        var->red.length = 5;
+        var->green.offset = 5;
+        var->green.length = 6;
+        var->blue.offset = 11;
+        var->blue.length = 5;
+        var->transp.offset = 16;
+        var->transp.length = 0;
+        var->grayscale = 0;
     }
 
 	return 0;
@@ -387,6 +418,8 @@ static int vpp_fb_set_par_and_init(struct fb_info *info)
 	info->screen_base = (char *)par->fastlogo_ctx.logoBuf;
 	info->fix.smem_start = (unsigned int)par->fastlogo_ctx.mapaddr;
 	info->fix.smem_len = par->fastlogo_ctx.length;
+    gs_info("set info->fix.smem_start = %u\n", par->fastlogo_ctx.mapaddr);
+    gs_info("set info->fix.smem_len = %u\n", par->fastlogo_ctx.length);
 
 	/* initialize dhub */
 	DhubInitialization(CPUINDEX, VPP_DHUB_BASE, VPP_HBO_SRAM_BASE, &VPP_dhubHandle, VPP_config, VPP_NUM_OF_CHANNELS);
@@ -593,164 +626,6 @@ static int vpp_fb_set_par(struct fb_info *info)
 	return 0;
 }
 
-/*
-int lock_fb_info(struct fb_info *info)
-{
-	mutex_lock(&info->lock);
-	if (!info->fbops) {
-		mutex_unlock(&info->lock);
-		return 0;
-	}
-	return 1;
-}
-EXPORT_SYMBOL(lock_fb_info);
-*/
-
-/* ioctl's */
-/*
-static long vpp_fb_ioctl(struct fb_info *info, unsigned int cmd, unsigned long arg)
-{
-	struct fb_ops *fb;
-	struct fb_var_screeninfo var;
-	struct fb_fix_screeninfo fix;
-	struct fb_con2fbmap con2fb;
-	struct fb_cmap cmap_from;
-	struct fb_cmap_user cmap;
-	struct fb_event event;
-	void __user *argp = (void __user *)arg;
-	long ret = 0;
-
-	gs_trace("ioctl! fb_info: %p, cmd: %X, arg: %X\n", info, cmd, arg);
-
-	if (!info)
-		return -ENODEV;
-
-	switch (cmd) {
-	case FBIOGET_VSCREENINFO:
-		//if (!lock_fb_info(info))
-		//	return -ENODEV;
-		var = info->var;
-		//unlock_fb_info(info);
-
-		ret = copy_to_user(argp, &var, sizeof(var)) ? -EFAULT : 0;
-		break;
-	case FBIOPUT_VSCREENINFO:
-		if (copy_from_user(&var, argp, sizeof(var)))
-			return -EFAULT;
-		//if (!lock_fb_info(info))
-		//	return -ENODEV;
-		//FIXME:
-        //console_lock();
-		info->flags |= FBINFO_MISC_USEREVENT;
-		ret = fb_set_var(info, &var);
-		info->flags &= ~FBINFO_MISC_USEREVENT;
-        //FIXME:
-		//console_unlock();
-		//unlock_fb_info(info);
-		if (!ret && copy_to_user(argp, &var, sizeof(var)))
-			ret = -EFAULT;
-		break;
-	case FBIOGET_FSCREENINFO:
-		//if (!lock_fb_info(info))
-		//	return -ENODEV;
-		fix = info->fix;
-		//unlock_fb_info(info);
-
-		ret = copy_to_user(argp, &fix, sizeof(fix)) ? -EFAULT : 0;
-		break;
-	case FBIOPUTCMAP:
-		if (copy_from_user(&cmap, argp, sizeof(cmap)))
-			return -EFAULT;
-		ret = fb_set_user_cmap(&cmap, info);
-		break;
-    /*
-	case FBIOGETCMAP:
-		if (copy_from_user(&cmap, argp, sizeof(cmap)))
-			return -EFAULT;
-		if (!lock_fb_info(info))
-			return -ENODEV;
-		cmap_from = info->cmap;
-		unlock_fb_info(info);
-		ret = fb_cmap_to_user(&cmap_from, &cmap);
-		break;
-	case FBIOPAN_DISPLAY:
-		if (copy_from_user(&var, argp, sizeof(var)))
-			return -EFAULT;
-		if (!lock_fb_info(info))
-			return -ENODEV;
-		console_lock();
-		ret = fb_pan_display(info, &var);
-		console_unlock();
-		unlock_fb_info(info);
-		if (ret == 0 && copy_to_user(argp, &var, sizeof(var)))
-			return -EFAULT;
-		break;
-	case FBIO_CURSOR:
-		ret = -EINVAL;
-		break;
-	case FBIOGET_CON2FBMAP:
-		if (copy_from_user(&con2fb, argp, sizeof(con2fb)))
-			return -EFAULT;
-		if (con2fb.console < 1 || con2fb.console > MAX_NR_CONSOLES)
-			return -EINVAL;
-		con2fb.framebuffer = -1;
-		event.data = &con2fb;
-		if (!lock_fb_info(info))
-			return -ENODEV;
-		event.info = info;
-		fb_notifier_call_chain(FB_EVENT_GET_CONSOLE_MAP, &event);
-		unlock_fb_info(info);
-		ret = copy_to_user(argp, &con2fb, sizeof(con2fb)) ? -EFAULT : 0;
-		break;
-	case FBIOPUT_CON2FBMAP:
-		if (copy_from_user(&con2fb, argp, sizeof(con2fb)))
-			return -EFAULT;
-		if (con2fb.console < 1 || con2fb.console > MAX_NR_CONSOLES)
-			return -EINVAL;
-		if (con2fb.framebuffer < 0 || con2fb.framebuffer >= FB_MAX)
-			return -EINVAL;
-		if (!registered_fb[con2fb.framebuffer])
-			request_module("fb%d", con2fb.framebuffer);
-		if (!registered_fb[con2fb.framebuffer]) {
-			ret = -EINVAL;
-			break;
-		}
-		event.data = &con2fb;
-		if (!lock_fb_info(info))
-			return -ENODEV;
-		console_lock();
-		event.info = info;
-		ret = fb_notifier_call_chain(FB_EVENT_SET_CONSOLE_MAP, &event);
-		console_unlock();
-		unlock_fb_info(info);
-		break;
-	case FBIOBLANK:
-		if (!lock_fb_info(info))
-			return -ENODEV;
-		console_lock();
-		info->flags |= FBINFO_MISC_USEREVENT;
-		ret = fb_blank(info, arg);
-		info->flags &= ~FBINFO_MISC_USEREVENT;
-		console_unlock();
-		unlock_fb_info(info);
-		break;
-    */
-    /*
-	default:
-        gs_trace("ioctl fallen into default case...\n > cmd: %X, arg: %X\n", cmd, arg);
-		//if (!lock_fb_info(info))
-		//	return -ENODEV;
-		//fb = info->fbops;
-		//if (fb->fb_ioctl)
-		//	ret = fb->fb_ioctl(info, cmd, arg);
-		//else
-			ret = -ENOTTY;
-		//unlock_fb_info(info);
-	}
-	return ret;
-}
-*/
-
 static struct fb_ops vpp_fb_ops = {
 	.owner        = THIS_MODULE,
 	.fb_check_var = vpp_fb_check_var,
@@ -766,7 +641,8 @@ static int __init vpp_fb_probe (struct platform_device *pdev)
 	struct fb_info *info;
 	struct vpp_fb_par *par;
 	struct device *device = &pdev->dev;
-	int cmap_len, retval;	
+	int cmap_len = 256; /* standard palette size?? */
+    int retval;	
 
 	/*
 	 * Dynamically allocate info and par
@@ -775,11 +651,11 @@ static int __init vpp_fb_probe (struct platform_device *pdev)
 
 	if (!info) {
 		/* goto error path */
+        return -ENOMEM;
 	}
 
 	par = info->par;
     
-
 	/* 
 	 * Here we set the screen_base to the virtual memory address
 	 * for the framebuffer. Usually we obtain the resource address
@@ -818,15 +694,16 @@ static int __init vpp_fb_probe (struct platform_device *pdev)
 	info->flags = FBINFO_DEFAULT;
 
 	// TODO: Figure this out
-#if 0
+#if 1
 	/*
 	 * This should give a reasonable default video mode. The following is
 	 * done when we can set a video mode. 
 	 */
 	if (!mode_option)
-	mode_option = "640x480@60";	 	
+	mode_option = "720x480@60";	 	
 
 	retval = fb_find_mode(&info->var, info, mode_option, NULL, 0, NULL, 8);
+    printk("vpp_fb_probe: fb_find_mode retval= %u\n");
 
 	if (!retval || retval == 4)
 	return -EINVAL;			
