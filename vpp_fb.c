@@ -96,10 +96,12 @@ struct vpp_fb_par {
 
 static struct fb_fix_screeninfo vpp_fb_fix __devinitdata = {
 	.id           = "VPP FB",
-	//.capabilities = FB_CAP_FOURCC,
+	.capabilities = FB_CAP_FOURCC,
 	.type         = FB_TYPE_PACKED_PIXELS,
-	.visual       = FB_VISUAL_TRUECOLOR,
-	//.visual       = FB_VISUAL_FOURCC,
+
+	//.visual       = FB_VISUAL_TRUECOLOR,
+	.visual       = FB_VISUAL_FOURCC,
+
 	.xpanstep     = 1,
 	.ypanstep     = 1,
 	.ywrapstep    = 1,
@@ -112,8 +114,9 @@ static struct fb_var_screeninfo vpp_fb_var __devinitdata = {
 	.xres_virtual = 720,
 	.yres_virtual = 480,
 	.bits_per_pixel = 16,
-	//.grayscale = V4L2_PIX_FMT_YUYV /* Also called YUV422 */
-	.grayscale = 0, /* Also called YUV422 */
+	.grayscale = V4L2_PIX_FMT_YUYV, /* Also called YUV422 */
+	//.grayscale = 0, /* Also called YUV422 */
+    /*
     .red.offset = 0,
     .red.length = 5,
     .green.offset = 5,
@@ -121,6 +124,15 @@ static struct fb_var_screeninfo vpp_fb_var __devinitdata = {
     .blue.offset = 11,
     .blue.length = 5,
     .transp.offset = 16,
+    .transp.length = 0,
+    */
+    .red.offset = 0,
+    .red.length = 0,
+    .green.offset = 0,
+    .green.length = 0,
+    .blue.offset = 0,
+    .blue.length = 0,
+    .transp.offset = 0,
     .transp.length = 0,
 };
 
@@ -204,7 +216,7 @@ static int vpp_fb_check_var(struct fb_var_screeninfo *var, struct fb_info *info)
         .grayscale = V4L2_PIX_FMT_YUYV,
     */
     
-	gs_info("vpp_fb_check_var was called!\n");
+	gs_info("vpp_fb_check_var was called! - var=%p info->var=%p\n", *var, info->var);
     gs_info(" .xres: %u\n", var->xres);
     gs_info(" .yres: %u\n", var->yres);
     gs_info(" .grayscale: %u\n", var->grayscale);
@@ -223,90 +235,88 @@ static int vpp_fb_check_var(struct fb_var_screeninfo *var, struct fb_info *info)
     gs_info(" .trans.length: %u\n", var->transp.length);
     gs_info(" .trans.msb_right: %u\n", var->transp.msb_right);
 
-    /* Fake this call for now, and just set it to whatever is requested */
+    /* this will reset the mode asked for, to the one currently applied in HW */
 	//*var = info->var;
 
-    var->bits_per_pixel = info->var.bits_per_pixel;
-    var->red.offset = info->var.red.offset;
-    var->red.length = info->var.red.length;
-    var->green.offset = info->var.green.offset;
-    var->green.length = info->var.green.length;
-    var->blue.offset = info->var.blue.offset;
-    var->blue.length = info->var.blue.length;
-    var->transp.offset = info->var.transp.offset;
-    var->transp.length = info->var.transp.length;
-    var->grayscale = info->var.grayscale;
+    /* max res check ? */
+	//if (var->xres > MAX_XRES || var->yres > MAX_YRES)
+	//	return -EINVAL;
 
-    return 0;
-
-	/*
-	 *  FB_VMODE_CONUPDATE and FB_VMODE_SMOOTH_XPAN are equal!
-	 *  as FB_VMODE_SMOOTH_XPAN is only used internally
+	/* Make sure the virtual resolution is at least as big as the visible
+	 * resolution.
 	 */
-
-    /*
-	if (var->vmode & FB_VMODE_CONUPDATE) {
-		var->vmode |= FB_VMODE_YWRAP;
-		var->xoffset = info->var.xoffset;
-		var->yoffset = info->var.yoffset;
-	}
-    */
-
-	/*
-	 * Now that we checked it we alter var. The reason being is that the video
-	 * mode passed in might not work but slight changes to it might make it 
-	 * work. This way we let the user know what is acceptable.
-	 */
-    
-    // FORCE for now, to the only video mode we support 
-
-    var->xres = 720;
-    if (var->yres != 576)
-        var->yres = 480;
-    var->xres_virtual = var->xres;
-    var->yres_virtual = var->yres;
-    
-    /*
-	if (var->xres_virtual < var->xoffset + var->xres)
-		var->xres_virtual = var->xoffset + var->xres;
-	if (var->yres_virtual < var->yoffset + var->yres)
-		var->yres_virtual = var->yoffset + var->yres;
-    */
+	if (var->xres_virtual < var->xres)
+		var->xres_virtual = var->xres;
+	if (var->yres_virtual < var->yres)
+		var->yres_virtual = var->yres;
 
     /* FOURCC mode ? */
-    if (var->grayscale == V4L2_PIX_FMT_YUYV)
+    if (var->grayscale >= 1)
     {
         gs_info("check var: setting to YUYV\n");
         /* YUYV == YUV422 */
-        var->bits_per_pixel = 16;
 
+        /* determine bpp here, for now, default to 16 */
+		var->bits_per_pixel = 16;
+		/* Default to YUYV color-spaces for now */
+        var->colorspace = V4L2_PIX_FMT_YUYV;
         var->red.offset = 0;
-        var->green.offset = 0;
-        var->blue.offset = 0;
-        var->transp.offset = 0;
-
         var->red.length = 0;
+        var->green.offset = 0;
         var->green.length = 0;
+        var->blue.offset = 0;
         var->blue.length = 0;
+        var->transp.offset = 0;
         var->transp.length = 0;
+	} else {
+		if (var->bits_per_pixel <= 16) {		/* RGB 565 */
+            gs_info("check var: setting to RGB565\n");
+			var->bits_per_pixel = 16;
+			var->red.offset = 11;
+			var->red.length = 5;
+			var->green.offset = 5;
+			var->green.length = 6;
+			var->blue.offset = 0;
+			var->blue.length = 5;
+			var->transp.offset = 0;
+			var->transp.length = 0;
+		} else if (var->bits_per_pixel <= 24) {		/* RGB 888 */
+            gs_info("check var: setting to RGB888\n");
+			var->bits_per_pixel = 24;
+			var->red.offset = 16;
+			var->red.length = 8;
+			var->green.offset = 8;
+			var->green.length = 8;
+			var->blue.offset = 0;
+			var->blue.length = 8;
+			var->transp.offset = 0;
+			var->transp.length = 0;
+		} else if (var->bits_per_pixel <= 32) {		/* RGBA 888 */
+            gs_info("check var: setting to RGB8888\n");
+			var->bits_per_pixel = 32;
+			var->red.offset = 16;
+			var->red.length = 8;
+			var->green.offset = 8;
+			var->green.length = 8;
+			var->blue.offset = 0;
+			var->blue.length = 8;
+			var->transp.offset = 24;
+			var->transp.length = 8;
+		} else {
+			return -EINVAL;
+        }
+		var->red.msb_right = 0;
+		var->green.msb_right = 0;
+		var->blue.msb_right = 0;
+		var->transp.msb_right = 0;
+	}
 
-        var->red.msb_right = 0;
-        var->green.msb_right = 0;
-        var->blue.msb_right = 0;
-        var->transp.msb_right = 0;
-    } else {
-        gs_info("check var: setting to RGB565\n");
-        /* RGBA 4-4-4-4 */
-        var->bits_per_pixel = 16;
-        var->red.offset = 0;
-        var->red.length = 5;
-        var->green.offset = 5;
-        var->green.length = 6;
-        var->blue.offset = 11;
-        var->blue.length = 5;
-        var->transp.offset = 16;
-        var->transp.length = 0;
-        var->grayscale = 0;
+	/* Make sure we don't exceed our allocated memory. */
+	if (var->xres_virtual * var->yres_virtual * var->bits_per_pixel / 8 >
+	    info->fix.smem_len)
+    {
+        gs_info("Does not fit memory! size=%u, smem_len: %u\n",(var->xres_virtual * var->yres_virtual * var->bits_per_pixel / 8), info->fix.smem_len);
+		return -EINVAL;
     }
 
 	return 0;
@@ -418,7 +428,7 @@ static int vpp_fb_set_par_and_init(struct fb_info *info)
 	info->screen_base = (char *)par->fastlogo_ctx.logoBuf;
 	info->fix.smem_start = (unsigned int)par->fastlogo_ctx.mapaddr;
 	info->fix.smem_len = par->fastlogo_ctx.length;
-    gs_info("set info->fix.smem_start = %u\n", par->fastlogo_ctx.mapaddr);
+    gs_info("set info->fix.smem_start = %p\n", par->fastlogo_ctx.mapaddr);
     gs_info("set info->fix.smem_len = %u\n", par->fastlogo_ctx.length);
 
 	/* initialize dhub */
@@ -466,9 +476,11 @@ static int vpp_fb_set_par_and_init(struct fb_info *info)
 }
 
 /* This limited function can now be called after init */
+/* Can modify par and fix, but not var !! */
 static int vpp_fb_set_par(struct fb_info *info)
 {
 	struct vpp_fb_par *par = info->par;
+	struct fb_var_screeninfo *var = &info->var;
 	int err;
 	int vres;
 
@@ -476,9 +488,27 @@ static int vpp_fb_set_par(struct fb_info *info)
 	static VBUF_INFO vbuf;
 
 	gs_info("vpp_fb_set_par was called!\n");
+    gs_info(" .xres: %u\n", var->xres);
+    gs_info(" .yres: %u\n", var->yres);
+    gs_info(" .grayscale: %u\n", var->grayscale);
+    gs_info(" .bpp: %u\n", var->bits_per_pixel);
+    gs_info(" .colorspace: %u\n", var->colorspace);
+    gs_info(" .red.offset: %u\n", var->red.offset);
+    gs_info(" .red.offset: %u\n", var->red.length);
+    gs_info(" .red.msb_right: %u\n", var->red.msb_right);
+    gs_info(" .green.offset: %u\n", var->green.offset);
+    gs_info(" .green.length: %u\n", var->green.length);
+    gs_info(" .green.msb_right: %u\n", var->green.msb_right);
+    gs_info(" .blue.offset: %u\n", var->blue.offset);
+    gs_info(" .blue.length: %u\n", var->blue.length);
+    gs_info(" .blue.msb_right: %u\n", var->blue.msb_right);
+    gs_info(" .trans.offset: %u\n", var->transp.offset);
+    gs_info(" .trans.length: %u\n", var->transp.length);
+    gs_info(" .trans.msb_right: %u\n", var->transp.msb_right);
 
 	// TODO: Is this needed?
 	vres = MV_THINVPP_IsCPCBActive(CPCB_1);
+    gs_info("THINVPP reports vres = %d\n", vres);
 
 	if (!vres)
 	{
@@ -491,9 +521,36 @@ static int vpp_fb_set_par(struct fb_info *info)
 		return -EINVAL; // do nothing if vres is not supported
 	}
 
+	if (info->var.grayscale >= 1) {
+        gs_info("vpp_fb fix.type changed to FOURCC\n");
+		info->fix.type = FB_TYPE_FOURCC;
+		info->fix.visual = FB_VISUAL_FOURCC;
+	} else {
+        gs_info("vpp_fb fix.type changed to TRUECOLOR\n");
+		info->fix.type = FB_TYPE_PACKED_PIXELS;
+		info->fix.visual = FB_VISUAL_TRUECOLOR;
+	}
+
+
+
     ////////////////
     /* Should apply setting from *info here... */
     ////////////////
+    if (info->var.xres == 525)
+    {
+        gs_info("setCPCBOutputResolution@525P\n");
+	    MV_THINVPP_SetCPCBOutputResolution(CPCB_1, RES_525P5994, OUTPUT_BIT_DEPTH_8BIT);
+    }
+    else if (info->var.xres == 720)
+    {
+        gs_info("setCPCBOutputResolution@720P\n");
+	    MV_THINVPP_SetCPCBOutputResolution(CPCB_1, RES_720P5994, OUTPUT_BIT_DEPTH_8BIT);
+    }
+    else if (info->var.xres == 1080)
+    {
+        gs_info("setCPCBOutputResolution@1080P\n");
+	    MV_THINVPP_SetCPCBOutputResolution(CPCB_1, RES_1080P30, OUTPUT_BIT_DEPTH_8BIT);
+    }
 
 	/* create PE device */
 
@@ -693,8 +750,9 @@ static int __init vpp_fb_probe (struct platform_device *pdev)
 	 */
 	info->flags = FBINFO_DEFAULT;
 
-	// TODO: Figure this out
-#if 1
+/* OR, we use fb_find_mode to figure a mode out */
+/// TODO: Does not work yet, because smem_len is not initialized yet... */
+#if 0
 	/*
 	 * This should give a reasonable default video mode. The following is
 	 * done when we can set a video mode. 
@@ -708,16 +766,15 @@ static int __init vpp_fb_probe (struct platform_device *pdev)
 	if (!retval || retval == 4)
 	return -EINVAL;			
 
+/* OR, we set the mode ourself */
+#else
+     /* Set the mode ourself */
+	info->var = vpp_fb_var;
+#endif
+
 	/* This has to be done! */
 	if (fb_alloc_cmap(&info->cmap, cmap_len, 0))
 		return -ENOMEM;
-#endif
-
-	/* 
-	 * The following is done in the case of having hardware with a static 
-	 * mode. If we are setting the mode ourselves we don't call this. 
-	 */	
-	info->var = vpp_fb_var;
 
     /* Fetch the screen base from the fastlogo driver, and setup hdmi transmitter */
 	vpp_fb_set_par_and_init(info);
