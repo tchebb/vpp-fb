@@ -56,7 +56,7 @@ extern shm_device_t *shm_api_device_noncache;
 
 #define bTST(x, b) (((x) >> (b)) & 1)
 
-#define FASTLOGO_DEVICE_TAG                       "[Galois][fbdev_driver] "
+#define VPP_FB_DEVICE_TAG                       "[Galois][fbdev_driver] "
 
 void VPP_dhub_sem_clear(void);
 
@@ -65,16 +65,16 @@ void VPP_dhub_sem_clear(void);
   */
 
 #ifdef ENABLE_DEBUG
-#define gs_debug(...)   printk(KERN_DEBUG FASTLOGO_DEVICE_TAG __VA_ARGS__)
+#define gs_debug(...)   printk(KERN_DEBUG VPP_FB_DEVICE_TAG __VA_ARGS__)
 #else
 #define gs_debug(...)
 #endif
 
-#define gs_info(...)    printk(KERN_INFO FASTLOGO_DEVICE_TAG __VA_ARGS__)
-#define gs_notice(...)  printk(KERN_NOTICE FASTLOGO_DEVICE_TAG __VA_ARGS__)
+#define gs_info(...)    printk(KERN_INFO VPP_FB_DEVICE_TAG __VA_ARGS__)
+#define gs_notice(...)  printk(KERN_NOTICE VPP_FB_DEVICE_TAG __VA_ARGS__)
 
-#define gs_trace(...)   printk(KERN_WARNING FASTLOGO_DEVICE_TAG __VA_ARGS__)
-#define gs_error(...)   printk(KERN_ERR FASTLOGO_DEVICE_TAG __VA_ARGS__)
+#define gs_trace(...)   printk(KERN_WARNING VPP_FB_DEVICE_TAG __VA_ARGS__)
+#define gs_error(...)   printk(KERN_ERR VPP_FB_DEVICE_TAG __VA_ARGS__)
 
 /*******************************************************************************
   Module Variable
@@ -93,7 +93,8 @@ static struct fb_fix_screeninfo vpp_fb_fix __devinitdata = {
 	.id           = "VPP FB",
 	.capabilities = FB_CAP_FOURCC,
 	.type         = FB_TYPE_PACKED_PIXELS,
-	.visual       = FB_VISUAL_TRUECOLOR,
+	//.visual       = FB_VISUAL_TRUECOLOR,
+	.visual       = FB_VISUAL_FOURCC,
 	.xpanstep     = 1,
 	.ypanstep     = 1,
 	.ywrapstep    = 1,
@@ -106,7 +107,8 @@ static struct fb_var_screeninfo vpp_fb_var __devinitdata = {
 	.xres_virtual = 720,
 	.yres_virtual = 480,
 	.bits_per_pixel = 16,
-	.grayscale = V4L2_PIX_FMT_YUYV,
+	.grayscale = V4L2_PIX_FMT_YUYV /* Also called YUV422 */
+	//.grayscale = 0 /* Also called YUV422 */
 };
 
 static irqreturn_t fastlogo_devices_vpp_isr(int irq, void *dev_id)
@@ -178,12 +180,111 @@ static void fastlogo_device_exit(struct fb_info *info)
 
 static int vpp_fb_check_var(struct fb_var_screeninfo *var, struct fb_info *info)
 {
+    /* TODO VINZ: Make this function so that we only support one mode for now */
+    /* THIS MODE:
+        .xres = 720,
+        .yres = 480,
+        .xres_virtual = 720,
+        .yres_virtual = 480,
+        .bits_per_pixel = 16,
+        .grayscale = V4L2_PIX_FMT_YUYV,
+    */
+    
 	*var = info->var;
+	u_long line_length;
+
+	gs_info("vpp_fb_check_var was called!\n");
+    gs_info(" .xres: %u\n", var->xres);
+    gs_info(" .yres: %u\n", var->yres);
+    gs_info(" .grayscale: %u\n", var->grayscale);
+    gs_info(" .bpp: %u\n", var->bits_per_pixel);
+    gs_info(" .colorspace: %u\n", var->colorspace);
+    gs_info(" .red.offset: %u\n", var->red.offset);
+    gs_info(" .red.offset: %u\n", var->red.length);
+    gs_info(" .red.msb_right: %u\n", var->red.msb_right);
+    gs_info(" .green.offset: %u\n", var->green.offset);
+    gs_info(" .green.length: %u\n", var->green.length);
+    gs_info(" .green.msb_right: %u\n", var->green.msb_right);
+    gs_info(" .blue.offset: %u\n", var->blue.offset);
+    gs_info(" .blue.length: %u\n", var->blue.length);
+    gs_info(" .blue.msb_right: %u\n", var->blue.msb_right);
+    gs_info(" .trans.offset: %u\n", var->transp.offset);
+    gs_info(" .trans.length: %u\n", var->transp.length);
+    gs_info(" .trans.msb_right: %u\n", var->transp.msb_right);
+
+	/*
+	 *  FB_VMODE_CONUPDATE and FB_VMODE_SMOOTH_XPAN are equal!
+	 *  as FB_VMODE_SMOOTH_XPAN is only used internally
+	 */
+
+    /*
+	if (var->vmode & FB_VMODE_CONUPDATE) {
+		var->vmode |= FB_VMODE_YWRAP;
+		var->xoffset = info->var.xoffset;
+		var->yoffset = info->var.yoffset;
+	}
+    */
+
+	/*
+	 * Now that we checked it we alter var. The reason being is that the video
+	 * mode passed in might not work but slight changes to it might make it 
+	 * work. This way we let the user know what is acceptable.
+	 */
+    
+    // FORCE for now, to the only video mode we support 
+
+    var->xres = 720;
+    var->yres = 480;
+    var->xres_virtual = var->xres;
+    var->yres_virtual = var->yres;
+    
+    /*
+	if (var->xres_virtual < var->xoffset + var->xres)
+		var->xres_virtual = var->xoffset + var->xres;
+	if (var->yres_virtual < var->yoffset + var->yres)
+		var->yres_virtual = var->yoffset + var->yres;
+    */
+
+    /* FOURCC mode ? */
+    if (var->grayscale == V4L2_PIX_FMT_YUYV)
+    {
+        /* YUYV == YUV422 */
+        var->bits_per_pixel = 16;
+
+        var->red.offset = 0;
+        var->green.offset = 0;
+        var->blue.offset = 0;
+        var->transp.offset = 0;
+
+        var->red.length = 0;
+        var->green.length = 0;
+        var->blue.length = 0;
+        var->transp.length = 0;
+
+        var->red.msb_right = 0;
+        var->green.msb_right = 0;
+        var->blue.msb_right = 0;
+        var->transp.msb_right = 0;
+    } else {
+        /* RGBA 4-4-4-4 */
+        var->bits_per_pixel = 16;
+        var->red.offset = 0;
+        var->red.length = 4;
+        var->green.offset = 4;
+        var->green.length = 4;
+        var->blue.offset = 8;
+        var->blue.length = 4;
+        var->transp.offset = 12;
+        var->transp.length = 4;
+    }
+
 	return 0;
 }
 
+
 // TODO: Can this be run while the hw is already initalized?
-static int vpp_fb_set_par(struct fb_info *info)
+// VNZ: NO!
+static int vpp_fb_set_par_and_init(struct fb_info *info)
 {
 	struct vpp_fb_par *par = info->par;
 	int err;
@@ -297,8 +398,9 @@ static int vpp_fb_set_par(struct fb_info *info)
 
 	/* set output resolution */
 	MV_THINVPP_SetCPCBOutputResolution(CPCB_1, RES_525P5994, OUTPUT_BIT_DEPTH_8BIT);
+	//MV_THINVPP_SetCPCBOutputResolution(CPCB_1, RES_720P60, OUTPUT_BIT_DEPTH_8BIT);
 
-	// use MAIN plane
+	/* use MAIN plane */
 	par->fastlogo_ctx.planes = 1;
 	par->fastlogo_ctx.win.x = 0;
 	par->fastlogo_ctx.win.y = 0;
@@ -311,6 +413,7 @@ static int vpp_fb_set_par(struct fb_info *info)
 	err = request_irq(IRQ_DHUBINTRAVIO0, fastlogo_devices_vpp_isr, IRQF_DISABLED, "fastlogo_module_vpp", info);
 	if (unlikely(err < 0)) {
 		gs_trace("vec_num:%5d, err:%8x\n", IRQ_DHUBINTRAVIO0, err);
+        /* in the case the IRQ was already requested before?? */
 		return err;
 	}
 
@@ -329,13 +432,333 @@ static int vpp_fb_set_par(struct fb_info *info)
 	return 0;
 }
 
+/* This limited function can now be called after init */
+static int vpp_fb_set_par(struct fb_info *info)
+{
+	struct vpp_fb_par *par = info->par;
+	int err;
+	int vres;
+
+	// TODO: Fix this also (fb_screeninfo_var?)
+	static VBUF_INFO vbuf;
+
+	gs_info("vpp_fb_set_par was called!\n");
+
+	// TODO: Is this needed?
+	vres = MV_THINVPP_IsCPCBActive(CPCB_1);
+
+	if (!vres)
+	{
+		gs_trace("vpp_fb is not enabled in bootloader\n");
+		return -EINVAL; // do nothing if fastlogo is not enabled in bootloader
+	}
+	if (vres != 524)
+	{
+		gs_trace("vpp_fb does not supprt vres=%d\n", vres);
+		return -EINVAL; // do nothing if vres is not supported
+	}
+
+    ////////////////
+    /* Should apply setting from *info here... */
+    ////////////////
+
+	/* create PE device */
+
+	/* set up logo frame */
+    /*
+	vbuf.alpha   = 255;
+	vbuf.bgcolor = 0x00800080;
+	vbuf.m_disp_offset   = 0;
+	vbuf.m_active_left   = 0; // TODO: Panning support?
+	vbuf.m_active_top    = 0;
+	vbuf.m_active_width  = info->var.xres;
+	vbuf.m_active_height = info->var.yres;
+	vbuf.m_buf_stride    = (info->var.bits_per_pixel / 8) * vbuf.m_active_width;
+
+	info->fix.line_length = vbuf.m_buf_stride;
+
+	par->fastlogo_ctx.length = vbuf.m_buf_stride * vbuf.m_active_height;
+
+#if LOGO_USE_SHM
+	// use MV_SHM for logo buffer and 3 dhub queues to have contiguous memory
+	par->fastlogo_ctx.mSHMSize = par->fastlogo_ctx.length +
+		par->fastlogo_ctx.bcmQ_len + par->fastlogo_ctx.dmaQ_len + par->fastlogo_ctx.cfgQ_len;
+
+	par->fastlogo_ctx.mSHMOffset = MV_SHM_NONCACHE_Malloc(par->fastlogo_ctx.mSHMSize, 4096);
+	if (par->fastlogo_ctx.mSHMOffset == ERROR_SHM_MALLOC_FAILED)
+	{
+		return -1;
+	}
+
+	par->fastlogo_ctx.logoBuf = (int *) MV_SHM_GetNonCacheVirtAddr(par->fastlogo_ctx.mSHMOffset);
+	par->fastlogo_ctx.mapaddr = (unsigned int *) MV_SHM_GetNonCachePhysAddr(par->fastlogo_ctx.mSHMOffset);
+
+	// arrange dhub queues and commands
+	{
+		char *shm = (char *) par->fastlogo_ctx.logoBuf;
+		unsigned shm_phys = (unsigned) par->fastlogo_ctx.mapaddr;
+		par->fastlogo_ctx.bcmQ_len = bcmQ_len;
+		par->fastlogo_ctx.dmaQ_len = 8*8;
+		par->fastlogo_ctx.cfgQ_len = 8*8;
+		par->fastlogo_ctx.bcmQ = shm + par->fastlogo_ctx.length;
+		par->fastlogo_ctx.dmaQ = par->fastlogo_ctx.bcmQ + par->fastlogo_ctx.bcmQ_len;
+		par->fastlogo_ctx.cfgQ = par->fastlogo_ctx.dmaQ + par->fastlogo_ctx.dmaQ_len;
+		par->fastlogo_ctx.bcmQ_phys = shm_phys + par->fastlogo_ctx.length;
+		par->fastlogo_ctx.dmaQ_phys = par->fastlogo_ctx.bcmQ_phys + par->fastlogo_ctx.bcmQ_len;
+		par->fastlogo_ctx.cfgQ_phys = par->fastlogo_ctx.dmaQ_phys + par->fastlogo_ctx.dmaQ_len;
+
+		// pre-load vpp commands
+		memcpy(par->fastlogo_ctx.bcmQ, bcm_cmd_0, bcm_cmd_0_len);
+
+		// pre-load logo frame dma commands
+		logo_frame_dma_cmd[2] = shm_phys;
+		vbuf.m_pbuf_start = (void *) shm_phys;
+		memcpy(par->fastlogo_ctx.dmaQ, logo_frame_dma_cmd, logo_dma_cmd_len);
+	}
+#else
+	par->fastlogo_ctx.logoBuf = kmalloc(par->fastlogo_ctx.length, GFP_KERNEL);
+	if (!par->fastlogo_ctx.logoBuf) {
+		gs_trace("kmalloc error\n");
+		return err;
+	}
+
+	par->fastlogo_ctx.mapaddr = (unsigned int *)dma_map_single(NULL, par->fastlogo_ctx.logoBuf, par->fastlogo_ctx.length, DMA_TO_DEVICE);
+	err = dma_mapping_error(NULL, (dma_addr_t)par->fastlogo_ctx.logoBuf);
+	if (err) {
+		gs_trace("dma_mapping_error\n");
+		kfree(par->fastlogo_ctx.logoBuf);
+		par->fastlogo_ctx.logoBuf = NULL;
+		return err;
+	}
+	outer_cache.flush_range(virt_to_phys(par->fastlogo_ctx.logoBuf), virt_to_phys(par->fastlogo_ctx.logoBuf)+par->fastlogo_ctx.length);
+	logo_frame_dma_cmd[2] = virt_to_phys(par->fastlogo_ctx.logoBuf);
+	vbuf.m_pbuf_start = (void *) logo_frame_dma_cmd[2];
+#endif
+
+	// initialize buffer
+	// TODO: YUV/RGB?
+	memset(par->fastlogo_ctx.logoBuf, 0, par->fastlogo_ctx.length);
+	info->screen_base = (char *)par->fastlogo_ctx.logoBuf;
+	info->fix.smem_start = (unsigned int)par->fastlogo_ctx.mapaddr;
+	info->fix.smem_len = par->fastlogo_ctx.length;
+
+    */
+
+	/* initialize dhub */
+    /*
+	DhubInitialization(CPUINDEX, VPP_DHUB_BASE, VPP_HBO_SRAM_BASE, &VPP_dhubHandle, VPP_config, VPP_NUM_OF_CHANNELS);
+	DhubInitialization(CPUINDEX, AG_DHUB_BASE, AG_HBO_SRAM_BASE, &AG_dhubHandle, AG_config, AG_NUM_OF_CHANNELS);
+
+	MV_THINVPP_Create(MEMMAP_VPP_REG_BASE, &par->fastlogo_ctx);
+	MV_THINVPP_Reset();
+	MV_THINVPP_Config();
+    */
+	/* set output resolution */
+    /*
+	MV_THINVPP_SetCPCBOutputResolution(CPCB_1, RES_525P5994, OUTPUT_BIT_DEPTH_8BIT);
+
+	// use MAIN plane
+	par->fastlogo_ctx.planes = 1;
+	par->fastlogo_ctx.win.x = 0;
+	par->fastlogo_ctx.win.y = 0;
+	par->fastlogo_ctx.win.width = 720;
+	par->fastlogo_ctx.win.height = 480;
+	MV_THINVPP_SetMainDisplayFrame(&vbuf);
+	MV_THINVPP_OpenDispWindow(PLANE_MAIN, &par->fastlogo_ctx.win, NULL);
+    */
+	/* register ISR */
+    /* VNZ: Certainly not again, done already. Except if we disable it first! */
+    /*
+	err = request_irq(IRQ_DHUBINTRAVIO0, fastlogo_devices_vpp_isr, IRQF_DISABLED, "fastlogo_module_vpp", info);
+	if (unlikely(err < 0)) {
+		gs_trace("vec_num:%5d, err:%8x\n", IRQ_DHUBINTRAVIO0, err);
+        // in the case the IRQ was already requested before??
+		//return err;
+	}
+    */
+	/*
+	 * using 3 for debugging legacy; should change to a more reasonable
+	 * number after clean-up
+	 */
+     /*
+	par->cpcb_start_flag = 3;
+
+	// clean up and enable ISR
+	VPP_dhub_sem_clear();
+	semaphore_pop(thinvpp_obj->pSemHandle, avioDhubSemMap_vpp_vppCPCB0_intr, 1);
+	semaphore_clr_full(thinvpp_obj->pSemHandle, avioDhubSemMap_vpp_vppCPCB0_intr);
+	THINVPP_Enable_ISR_Interrupt(thinvpp_obj, CPCB_1, 1);
+    */
+
+	return 0;
+}
+
+/*
+int lock_fb_info(struct fb_info *info)
+{
+	mutex_lock(&info->lock);
+	if (!info->fbops) {
+		mutex_unlock(&info->lock);
+		return 0;
+	}
+	return 1;
+}
+EXPORT_SYMBOL(lock_fb_info);
+*/
+
+/* ioctl's */
+/*
+static long vpp_fb_ioctl(struct fb_info *info, unsigned int cmd, unsigned long arg)
+{
+	struct fb_ops *fb;
+	struct fb_var_screeninfo var;
+	struct fb_fix_screeninfo fix;
+	struct fb_con2fbmap con2fb;
+	struct fb_cmap cmap_from;
+	struct fb_cmap_user cmap;
+	struct fb_event event;
+	void __user *argp = (void __user *)arg;
+	long ret = 0;
+
+	gs_trace("ioctl! fb_info: %p, cmd: %X, arg: %X\n", info, cmd, arg);
+
+	if (!info)
+		return -ENODEV;
+
+	switch (cmd) {
+	case FBIOGET_VSCREENINFO:
+		//if (!lock_fb_info(info))
+		//	return -ENODEV;
+		var = info->var;
+		//unlock_fb_info(info);
+
+		ret = copy_to_user(argp, &var, sizeof(var)) ? -EFAULT : 0;
+		break;
+	case FBIOPUT_VSCREENINFO:
+		if (copy_from_user(&var, argp, sizeof(var)))
+			return -EFAULT;
+		//if (!lock_fb_info(info))
+		//	return -ENODEV;
+		//FIXME:
+        //console_lock();
+		info->flags |= FBINFO_MISC_USEREVENT;
+		ret = fb_set_var(info, &var);
+		info->flags &= ~FBINFO_MISC_USEREVENT;
+        //FIXME:
+		//console_unlock();
+		//unlock_fb_info(info);
+		if (!ret && copy_to_user(argp, &var, sizeof(var)))
+			ret = -EFAULT;
+		break;
+	case FBIOGET_FSCREENINFO:
+		//if (!lock_fb_info(info))
+		//	return -ENODEV;
+		fix = info->fix;
+		//unlock_fb_info(info);
+
+		ret = copy_to_user(argp, &fix, sizeof(fix)) ? -EFAULT : 0;
+		break;
+	case FBIOPUTCMAP:
+		if (copy_from_user(&cmap, argp, sizeof(cmap)))
+			return -EFAULT;
+		ret = fb_set_user_cmap(&cmap, info);
+		break;
+    /*
+	case FBIOGETCMAP:
+		if (copy_from_user(&cmap, argp, sizeof(cmap)))
+			return -EFAULT;
+		if (!lock_fb_info(info))
+			return -ENODEV;
+		cmap_from = info->cmap;
+		unlock_fb_info(info);
+		ret = fb_cmap_to_user(&cmap_from, &cmap);
+		break;
+	case FBIOPAN_DISPLAY:
+		if (copy_from_user(&var, argp, sizeof(var)))
+			return -EFAULT;
+		if (!lock_fb_info(info))
+			return -ENODEV;
+		console_lock();
+		ret = fb_pan_display(info, &var);
+		console_unlock();
+		unlock_fb_info(info);
+		if (ret == 0 && copy_to_user(argp, &var, sizeof(var)))
+			return -EFAULT;
+		break;
+	case FBIO_CURSOR:
+		ret = -EINVAL;
+		break;
+	case FBIOGET_CON2FBMAP:
+		if (copy_from_user(&con2fb, argp, sizeof(con2fb)))
+			return -EFAULT;
+		if (con2fb.console < 1 || con2fb.console > MAX_NR_CONSOLES)
+			return -EINVAL;
+		con2fb.framebuffer = -1;
+		event.data = &con2fb;
+		if (!lock_fb_info(info))
+			return -ENODEV;
+		event.info = info;
+		fb_notifier_call_chain(FB_EVENT_GET_CONSOLE_MAP, &event);
+		unlock_fb_info(info);
+		ret = copy_to_user(argp, &con2fb, sizeof(con2fb)) ? -EFAULT : 0;
+		break;
+	case FBIOPUT_CON2FBMAP:
+		if (copy_from_user(&con2fb, argp, sizeof(con2fb)))
+			return -EFAULT;
+		if (con2fb.console < 1 || con2fb.console > MAX_NR_CONSOLES)
+			return -EINVAL;
+		if (con2fb.framebuffer < 0 || con2fb.framebuffer >= FB_MAX)
+			return -EINVAL;
+		if (!registered_fb[con2fb.framebuffer])
+			request_module("fb%d", con2fb.framebuffer);
+		if (!registered_fb[con2fb.framebuffer]) {
+			ret = -EINVAL;
+			break;
+		}
+		event.data = &con2fb;
+		if (!lock_fb_info(info))
+			return -ENODEV;
+		console_lock();
+		event.info = info;
+		ret = fb_notifier_call_chain(FB_EVENT_SET_CONSOLE_MAP, &event);
+		console_unlock();
+		unlock_fb_info(info);
+		break;
+	case FBIOBLANK:
+		if (!lock_fb_info(info))
+			return -ENODEV;
+		console_lock();
+		info->flags |= FBINFO_MISC_USEREVENT;
+		ret = fb_blank(info, arg);
+		info->flags &= ~FBINFO_MISC_USEREVENT;
+		console_unlock();
+		unlock_fb_info(info);
+		break;
+    */
+    /*
+	default:
+        gs_trace("ioctl fallen into default case...\n > cmd: %X, arg: %X\n", cmd, arg);
+		//if (!lock_fb_info(info))
+		//	return -ENODEV;
+		//fb = info->fbops;
+		//if (fb->fb_ioctl)
+		//	ret = fb->fb_ioctl(info, cmd, arg);
+		//else
+			ret = -ENOTTY;
+		//unlock_fb_info(info);
+	}
+	return ret;
+}
+*/
+
 static struct fb_ops vpp_fb_ops = {
 	.owner        = THIS_MODULE,
 	.fb_check_var = vpp_fb_check_var,
 	.fb_set_par   = vpp_fb_set_par,
+    //.fb_ioctl     = vpp_fb_ioctl,
 	.fb_fillrect  = cfb_fillrect,
 	.fb_copyarea  = cfb_copyarea,
-	.fb_imageblit = cfb_imageblit,
+	.fb_imageblit = cfb_imageblit
 };
 
 static int __init vpp_fb_probe (struct platform_device *pdev)
@@ -355,6 +778,7 @@ static int __init vpp_fb_probe (struct platform_device *pdev)
 	}
 
 	par = info->par;
+    
 
 	/* 
 	 * Here we set the screen_base to the virtual memory address
@@ -362,7 +786,7 @@ static int __init vpp_fb_probe (struct platform_device *pdev)
 	 * from the bus layer and then translate it to virtual memory
 	 * space via ioremap. Consult ioport.h. 
 	 */
-	//info->screen_base = framebuffer_virtual_memory;
+	//info->screen_base = framebuffer_virtual_memory;  ->> Done later
 	info->fbops = &vpp_fb_ops;
 	info->fix = vpp_fb_fix; /* this will be the only time vpp_fb_fix will be
 				* used, so mark it as __devinitdata
@@ -418,10 +842,13 @@ static int __init vpp_fb_probe (struct platform_device *pdev)
 	 */	
 	info->var = vpp_fb_var;
 
+    /* Fetch the screen base from the fastlogo driver, and setup hdmi transmitter */
+	vpp_fb_set_par_and_init(info);
+
 	/*
 	 * For drivers that can...
 	 */
-	//xxxfb_check_var(&info->var, info);
+	vpp_fb_check_var(&info->var, info);
 
 	/*
 	 * Does a call to fb_set_par() before register_framebuffer needed?  This
@@ -432,14 +859,13 @@ static int __init vpp_fb_probe (struct platform_device *pdev)
 	 * point will corrupt the VGA console, so it might be safer to skip a
 	 * call to set_par here and just allow fbcon to do it for you.
 	 */
-	vpp_fb_set_par(info);
+	//vpp_fb_set_par(info);
 
 	if (register_framebuffer(info) < 0) {
-	fb_dealloc_cmap(&info->cmap);
-	return -EINVAL;
+      fb_dealloc_cmap(&info->cmap);
+      return -EINVAL;
 	}
-	printk(KERN_INFO "fb%d: %s frame buffer device\n", info->node,
-	   info->fix.id);
+	printk(KERN_INFO "fb%d: %s frame buffer device\n", info->node, info->fix.id);
 	platform_set_drvdata(pdev, info);
 	return 0;
 }
@@ -501,6 +927,6 @@ static void __exit vpp_fb_exit(void)
 module_init(vpp_fb_init);
 module_exit(vpp_fb_exit);
 
-MODULE_AUTHOR("Thomas Hebb <tommyhebb@gmail.com>");
+MODULE_AUTHOR("Thomas Hebb <tommyhebb@gmail.com>, Maxime Vincent <maxime.vince@gmail.com>");
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("VPP framebuffer for Marvell 88DE3100");
