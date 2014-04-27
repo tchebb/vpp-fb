@@ -24,6 +24,7 @@ ccflags-y	+= $(MV_DEFINE) $(HEADER_PATH)
 
 ccflags-y	+= -I$(PWD)/THINVPP/source/include/include_BG2_A0
 
+ccflags-y 	+= -I$(PWD)/AVPLL/include
 ccflags-y 	+= -I$(PWD)/THINVPP/include
 ccflags-y 	+= -I$(PWD)/THINVPP/source/include
 ccflags-y 	+= -I$(PWD)/THINVPP/source/BE/include
@@ -33,6 +34,7 @@ ccflags-y 	+= -I$(PWD)/THINVPP/source/MISC/include
 ccflags-y 	+= -I$(PWD)/THINVPP/source/SCL/include
 asflags-y 	+= -I$(PWD)
 
+FASTLOGO_SOURCE += $(wildcard $(PWD)/AVPLL/source/*.c)
 FASTLOGO_SOURCE += $(wildcard $(PWD)/THINVPP/source/*.c)
 FASTLOGO_SOURCE += $(wildcard $(PWD)/THINVPP/source/BE/source/*.c)
 FASTLOGO_SOURCE += $(wildcard $(PWD)/THINVPP/source/CPCB/source/*.c)
