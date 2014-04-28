@@ -171,6 +171,38 @@ static int startChannelDataLoader(THINVPP_OBJ *vpp_obj, int chanID)
             break;
 
         case STATUS_DISP:
+            if (chan->disp_win_attr.bgcolor != pinfo->bgcolor || chan->disp_win_attr.alpha != pinfo->alpha)
+            {
+                // update bgcolor and alpha
+                chan->disp_win_attr.bgcolor = pinfo->bgcolor;
+                chan->disp_win_attr.alpha = pinfo->alpha;
+                THINVPP_CPCB_SetPlaneAttribute(vpp_obj, cpcbID, chan->dvlayerID, chan->disp_win_attr.alpha, chan->disp_win_attr.bgcolor);
+            }
+
+            if (plane->actv_win.x != active_left ||
+                plane->actv_win.y != pinfo->m_active_top ||
+                plane->actv_win.width  != active_width ||
+                plane->actv_win.height != pinfo->m_active_height)
+            {
+                // update active window location and size
+                plane->actv_win.x = active_left;
+                plane->actv_win.y = pinfo->m_active_top;
+                plane->actv_win.width  = active_width;
+                plane->actv_win.height = pinfo->m_active_height;
+
+                CropWpl = (((plane->actv_win.width + PIXEL_PER_BEAT_YUV_422 - 1) / PIXEL_PER_BEAT_YUV_422) << 16);
+                plane->wpl = CropWpl >> 16;
+                res.HRes = plane->actv_win.width;
+                res.VRes = plane->actv_win.height;
+                FE_DLR_SetPlaneSize(vpp_obj, dlr_id, &res, CropWpl);
+                FE_DLR_SetVPDMX(vpp_obj, &res, 1, 0);
+                FE_DLR_SetDummyTG(vpp_obj, &res, 1, 0);
+                updateVPSize(vpp_obj, plane);
+
+                THINVPP_CPCB_SetPlaneSourceWindow(vpp_obj, cpcbID, chan->dvlayerID,
+                    plane->actv_win.x, plane->actv_win.y, plane->actv_win.width, plane->actv_win.height);
+            }
+
             /* start data loader DMA to load display content */
             vpp_obj->dv[CPCB_1].curr_cpcb_vbi_dma_cfgQ->len += START_2DDMA(plane->dmaRdhubID, plane->dmaRID,
                 (unsigned int)frame_addr, pinfo->m_buf_stride, plane->wpl*8, plane->actv_win.height,

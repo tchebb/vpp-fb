@@ -25,10 +25,12 @@
 
 #include "thinvpp_module.h"
 #include "thinvpp_apifuncs.h"
+#include "thinvpp_cfg.h"
 #include "thinvpp_scl.h"
 #include "thinvpp_cpcb.h"
 #include "thinvpp_be.h"
 #include "thinvpp_isr.h"
+#include "avpll.h"
 
 #include <linux/mm.h>
 #include <asm/page.h>
@@ -39,6 +41,29 @@
 #include "api_dhub.h"
 
 #define bTST(x, b) (((x) >> (b)) & 1)
+
+static int NeedAVPLL_PPM1K(int resID)
+{
+    int frame_rate;
+    int ret;
+
+    frame_rate = m_resinfo_table[resID].frame_rate;
+    if (m_resinfo_table[resID].type == TYPE_SD) {
+        /* for SD resolution */
+        if ((frame_rate == FRAME_RATE_59P94) || (frame_rate == FRAME_RATE_50))
+            ret = 0;
+        else
+            ret = 1;
+    } else {
+        /* for HD resolution */
+        if ((frame_rate == FRAME_RATE_59P94) || (frame_rate == FRAME_RATE_29P97) || (frame_rate == FRAME_RATE_23P98) || (frame_rate == FRAME_RATE_119P88) || (frame_rate == FRAME_RATE_47P96))
+            ret = 0;
+        else
+            ret = 1;;
+    }
+
+    return ret;
+}
 
 void VPP_dhub_sem_clear(void)
 {
@@ -346,6 +371,8 @@ int MV_THINVPP_Config(void)
     return (MV_THINVPP_OK);
 }
 
+// TODO: Proper function prototypes
+int MV_THINVPP_SetHdmiVideoFmt(int color_fmt, int bit_depth, int pixel_rept);
 /*******************************************************************
  * FUNCTION: set CPCB or DV output resolution
  * INPUT: cpcbID - CPCB(for Berlin) or DV(for Galois) id
@@ -361,6 +388,10 @@ int MV_THINVPP_Config(void)
 int MV_THINVPP_SetCPCBOutputResolution(int cpcbID, int resID, int bit_depth)
 {
     int params[3];
+    int ppm1k_en;
+    int     avpll_freq_index;
+    int     deep_color_index;
+    int     ovsmp_index;
 
     if (!thinvpp_obj) {
         return (MV_THINVPP_ENODEV);
@@ -379,8 +410,55 @@ int MV_THINVPP_SetCPCBOutputResolution(int cpcbID, int resID, int bit_depth)
         return (MV_THINVPP_EBADPARAM);
     }
 
-
     if (resID != RES_RESET) {
+        /* set CPCB new resolution */
+        if (m_resinfo_table[resID].freq <= 25200) {
+            avpll_freq_index = 0;
+            ovsmp_index = 4;
+        } else if ((m_resinfo_table[resID].freq == 27000) || (m_resinfo_table[resID].freq == 27027)) {
+            avpll_freq_index = 1;
+            ovsmp_index = 4;
+        } else if ((m_resinfo_table[resID].freq == 74250) || (m_resinfo_table[resID].freq == 74176)) {
+            avpll_freq_index = 3;
+            ovsmp_index = 2;
+        } else if ((m_resinfo_table[resID].freq == 148500) || (m_resinfo_table[resID].freq == 148352)) {
+            avpll_freq_index = 5;
+            ovsmp_index = 1;
+        } else {
+            return (MV_THINVPP_EBADPARAM);
+        }
+
+        if (bit_depth == OUTPUT_BIT_DEPTH_12BIT)
+            deep_color_index = 2;
+        else if (bit_depth == OUTPUT_BIT_DEPTH_10BIT)
+            deep_color_index = 1;
+        else if (bit_depth == OUTPUT_BIT_DEPTH_8BIT)
+            deep_color_index = 0;
+        else
+            return (MV_THINVPP_EBADPARAM);
+
+        ppm1k_en = NeedAVPLL_PPM1K(resID);
+
+        if (cpcbID == CPCB_1)
+#if (BERLIN_CHIP_VERSION >= BERLIN_BG2_A0)
+            diag_videoFreq_A(avpll_freq_index, deep_color_index, ppm1k_en, ovsmp_index, 6); // 3, 0, 1, 2, 6
+#else
+            diag_videoFreq_A(avpll_freq_index, deep_color_index, ppm1k_en, ovsmp_index, 1);
+#endif
+        else if (cpcbID == CPCB_2)
+#if (BERLIN_CHIP_VERSION >= BERLIN_BG2_A0)
+            diag_videoFreq_A(avpll_freq_index, deep_color_index, ppm1k_en, ovsmp_index, 5);
+#else
+            diag_videoFreq_A(avpll_freq_index, deep_color_index, ppm1k_en, ovsmp_index, 2);
+#endif
+        else if (cpcbID == CPCB_3)
+#if (BERLIN_CHIP_VERSION >= BERLIN_BG2_A0)
+            diag_videoFreq_B(avpll_freq_index, 2 /* always set to 12-bit for AUX */, ppm1k_en, ovsmp_index, 6);
+#else
+            diag_videoFreq_B(avpll_freq_index, 2 /* always set to 12-bit for AUX */, ppm1k_en, ovsmp_index, 1);
+#endif
+
+        msleep(20);
 
         /* select BCM sub-buffer to dump register settings */
         THINVPP_BCMBUF_Select(thinvpp_obj->pVbiBcmBuf, cpcbID);
@@ -389,6 +467,9 @@ int MV_THINVPP_SetCPCBOutputResolution(int cpcbID, int resID, int bit_depth)
         params[0] = cpcbID;
         params[1] = resID;
         VPP_SetCPCBOutputResolution(thinvpp_obj, params);
+
+        if (cpcbID == CPCB_1)
+            MV_THINVPP_SetHdmiVideoFmt(OUTPUT_COLOR_FMT_RGB888, bit_depth, 1);
 
         /* set DV status to active */
         thinvpp_obj->dv[cpcbID].status = STATUS_ACTIVE;
@@ -509,6 +590,11 @@ int MV_THINVPP_CloseDispWindow(void)
     if (!thinvpp_obj)
         return (MV_THINVPP_ENODEV);
 
+    /* wait for CPCB TG reset done */
+    thinvpp_obj->plane[PLANE_MAIN].status = STATUS_STOP;
+
+    while(thinvpp_obj->plane[PLANE_MAIN].status != STATUS_INACTIVE);
+
     return (MV_THINVPP_OK);
 }
 
@@ -536,4 +622,99 @@ int MV_THINVPP_Stop(void)
     return (MV_THINVPP_OK);
 }
 
+/********************************************************************************
+ * FUNCTION: Set Hdmi Video format
+ * INPUT: color_fmt - color format (RGB, YCbCr 444, 422)
+ *      : bit_depth - 8/10/12 bit color
+ *      : pixel_rept - 1/2/4 repetitions of pixel
+ * RETURN: MV_THINVPP_OK - SUCCEED
+ *         MV_EBADPARAM - invalid parameters
+ *         MV_EUNCONFIG - VPP not configured
+ *         MV_THINVPP_ENODEV - no device
+ *         MV_EUNSUPPORT - channel not connected in configuration
+ *         MV_THINVPP_EBADCALL - channel not connected to DV1
+ *         MV_ECMDQFULL - command queue is full
+ ********************************************************************************/
+int MV_THINVPP_SetHdmiVideoFmt(int color_fmt, int bit_depth, int pixel_rept)
+{
+    int     cpcbID;
+    int     resID;
+    int     retVal;
+    int     instat;
+    int     avpll_freq_index;
+    int     deep_color_index;
+    int   freq_factor;
+    int ppm1k_en;
 
+    if (!thinvpp_obj)
+        return (MV_THINVPP_ENODEV);
+
+    if ((cpcbID = CPCB_OF_VOUT(thinvpp_obj, VOUT_HDMI)) == CPCB_INVALID) {
+          /* Output is not connected to any DV in configuration */
+        return (MV_THINVPP_EUNSUPPORT);
+    }
+
+    /* Configure AVPLL */
+    resID = thinvpp_obj->dv[cpcbID].output_res;
+    if (resID == RES_INVALID)
+        return (MV_THINVPP_EBADPARAM);
+
+    if ((m_resinfo_table[resID].freq == 25200) || (m_resinfo_table[resID].freq == 25175)) {
+        avpll_freq_index = 0;
+    } else if ((m_resinfo_table[resID].freq == 27000) || (m_resinfo_table[resID].freq == 27027)) {
+        avpll_freq_index = 1;
+        if (pixel_rept == 2) {
+            if (m_resinfo_table[resID].scan != SCAN_INTERLACED)
+                avpll_freq_index = 2;
+        } else if (pixel_rept == 4) {
+            if (m_resinfo_table[resID].scan != SCAN_INTERLACED)
+                avpll_freq_index = 4;
+            else
+                avpll_freq_index = 2;
+        }
+    } else if ((m_resinfo_table[resID].freq == 74250) || (m_resinfo_table[resID].freq == 74176)) {
+        avpll_freq_index = 3;
+    } else if ((m_resinfo_table[resID].freq == 148500) || (m_resinfo_table[resID].freq == 148352)) {
+        if (resID == RES_1080I60 || resID == RES_1080I5994 || resID == RES_1080I50)
+            avpll_freq_index = 3;
+        else
+            avpll_freq_index = 5;
+    } else {
+        return (MV_THINVPP_EBADPARAM);
+    }
+
+    if (bit_depth == OUTPUT_BIT_DEPTH_12BIT) {
+        deep_color_index = 2;
+        freq_factor = 15;
+    } else if (bit_depth == OUTPUT_BIT_DEPTH_10BIT) {
+        deep_color_index = 1;
+        freq_factor = 12; //TODO: 12.5;
+    } else if (bit_depth == OUTPUT_BIT_DEPTH_8BIT) {
+        deep_color_index = 0;
+        freq_factor = 10;
+    } else {
+        return (MV_THINVPP_EBADPARAM);
+    }
+
+    ppm1k_en = NeedAVPLL_PPM1K(resID);
+
+    diag_videoFreq_A(avpll_freq_index, deep_color_index, ppm1k_en, freq_factor, 7);
+
+    msleep(20);
+
+    /* Config video format */
+    if (MV_THINVPP_OK != (retVal = THINVPP_BE_ConfigHdmiVideoFmt (thinvpp_obj, color_fmt, bit_depth, pixel_rept)))
+        return retVal;
+
+    semaphore_pop(thinvpp_obj->pSemHandle, avioDhubSemMap_vpp_vppCPCB0_intr, 1);
+    semaphore_clr_full(thinvpp_obj->pSemHandle, avioDhubSemMap_vpp_vppCPCB0_intr);
+    do {
+        instat = semaphore_chk_full(thinvpp_obj->pSemHandle, -1);
+    } while (!(bTST(instat, avioDhubSemMap_vpp_vppCPCB0_intr)));
+
+    THINVPP_BCMBUF_Select(thinvpp_obj->pVbiBcmBuf, cpcbID);
+
+    THINVPP_BE_SetHdmiVideoFmt(thinvpp_obj);
+
+    return (MV_THINVPP_OK);
+}

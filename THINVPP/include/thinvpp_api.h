@@ -1995,6 +1995,20 @@ int MV_THINVPP_CloseDispWindow(void);
 
 int MV_THINVPP_Stop(void);
 
+/********************************************************************************
+ * FUNCTION: Set Hdmi Video format
+ * INPUT: color_fmt - color format (RGB, YCbCr 444, 422)
+ *      : bit_depth - 8/10/12 bit color
+ *      : pixel_rept - 1/2/4 repetitions of pixel
+ * RETURN: MV_THINVPP_OK - SUCCEED
+ *         MV_EBADPARAM - invalid parameters
+ *         MV_EUNCONFIG - VPP not configured
+ *         MV_THINVPP_ENODEV - no device
+ *         MV_EUNSUPPORT - channel not connected in configuration
+ *         MV_THINVPP_EBADCALL - channel not connected to DV1
+ *         MV_ECMDQFULL - command queue is full
+ ********************************************************************************/
+int MV_THINVPP_SetHdmiVideoFmt(int color_fmt, int bit_depth, int pixel_rept);
 
 #ifdef __cplusplus
 }
