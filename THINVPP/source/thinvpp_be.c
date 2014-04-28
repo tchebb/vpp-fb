@@ -916,6 +916,7 @@ static int HdmiTxReset (THINVPP_OBJ *vpp_obj)
     if (pHdmiTxData->rxConnected)
     {
         // Receiver is already connected
+        // TODO: Why does this line break things?
         HdmiTxHandleHotPlug (vpp_obj, 1);
     }
 
@@ -959,7 +960,7 @@ static int HdmiTxHandleHotPlug (THINVPP_OBJ *vpp_obj, int rxConnected)
     if (rxConnected)
     {
 
-        BE_HDMITX_EnablePhyFifo(vpp_obj, 0, 0);
+        //BE_HDMITX_EnablePhyFifo(vpp_obj, 0, 0);
 
         // Receiver plugged in
         pHdmiTx->videoParams.DispRes = RES_INVALID;
@@ -976,7 +977,7 @@ static int HdmiTxHandleHotPlug (THINVPP_OBJ *vpp_obj, int rxConnected)
         BE_HDMIPHY_SetDAMP(vpp_obj, 0);
         BE_HDMIPHY_SetEAMP(vpp_obj, 0);
 
-        BE_HDMITX_EnablePhyFifo(vpp_obj, 0, 0);
+        //BE_HDMITX_EnablePhyFifo(vpp_obj, 0, 0);
 
         // Mute Output
         BE_HDMITX_SetMute (vpp_obj, 1, 1);

@@ -284,6 +284,7 @@ int MV_THINVPP_Reset(void)
 
     THINVPP_SCL_Reset(thinvpp_obj);
     THINVPP_CPCB_Reset(thinvpp_obj);
+    THINVPP_BE_Reset(thinvpp_obj);
 
     return (MV_THINVPP_OK);
 }
@@ -363,6 +364,7 @@ int MV_THINVPP_Config(void)
 
     THINVPP_SCL_Config(thinvpp_obj);
     THINVPP_CPCB_Config(thinvpp_obj);
+    THINVPP_BE_Config(thinvpp_obj);
 
     BCM_SCHED_SetMux(BCM_SCHED_Q0, 0); /* CPCB0 VBI -> Q0 */
 
