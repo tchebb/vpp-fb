@@ -185,6 +185,70 @@ int THINVPP_BCMBUF_Write(BCMBUF *pbcmbuf, unsigned int address, unsigned int val
     return MV_THINVPP_OK;
 }
 
+/*********************************************************************
+ * FUNCTION: do the hardware transaction
+ * PARAMS: *buf - pointer to the buffer descriptor
+ ********************************************************************/
+void THINVPP_BCMBUF_HardwareTrans(BCMBUF *pbcmbuf, int block)
+{
+    HDL_semaphore *pSemHandle;
+    HDL_dhub2d *pDhubHandle;
+    unsigned int bcm_sched_cmd[2];
+    int dhubID;
+    unsigned int *start;
+    int status;
+    int size;
+
+    if (pbcmbuf->subID == CPCB_1)
+        start = pbcmbuf->dv1_head;
+    else
+        start = pbcmbuf->head;
+
+    size = (int)pbcmbuf->writer-(int)start;
+
+    if (size <= 0)
+        return;
+
+    /* flush data in D$ */
+    FLUSH_DCACHE_RANGE(start, size);
+#if LOGO_USE_SHM
+    start = pbcmbuf->phys;
+#else
+    start = (unsigned int *)virt_to_phys(start);
+#endif
+
+    /* start BCM engine */
+    dhubID = avioDhubChMap_vpp_BCM_R;
+    pDhubHandle = &VPP_dhubHandle;
+
+    /* clear BCM interrupt */
+    pSemHandle = dhub_semaphore(&(pDhubHandle->dhub));
+    status = semaphore_chk_full(pSemHandle, dhubID);
+    while (status) {
+        semaphore_pop(pSemHandle, dhubID, 1);
+        semaphore_clr_full(pSemHandle, dhubID);
+        status = semaphore_chk_full(pSemHandle, dhubID);
+    }
+
+    dhub_channel_generate_cmd(&(pDhubHandle->dhub), dhubID, (int)start, (int)size, 0, 0, 0, 1, bcm_sched_cmd);
+    while( !BCM_SCHED_PushCmd(BCM_SCHED_Q12, bcm_sched_cmd, NULL));
+
+    if (block){
+        /* check BCM interrupt */
+        pSemHandle = dhub_semaphore(&(pDhubHandle->dhub));
+        status = semaphore_chk_full(pSemHandle, dhubID);
+        while (!status) {
+            status = semaphore_chk_full(pSemHandle, dhubID);
+        }
+
+        /* clear BCM interrupt */
+        semaphore_pop(pSemHandle, dhubID, 1);
+        semaphore_clr_full(pSemHandle, dhubID);
+    }
+
+    return;
+}
+
 #if LOGO_USE_SHM
 int THINVPP_CFGQ_Set(DHUB_CFGQ *cfgQ, void *addr, unsigned phys, int size)
 {

@@ -286,6 +286,9 @@ int MV_THINVPP_Reset(void)
     THINVPP_CPCB_Reset(thinvpp_obj);
     THINVPP_BE_Reset(thinvpp_obj);
 
+    /* start BCM engine to program VPP registers */
+    THINVPP_BCMBUF_HardwareTrans(thinvpp_obj->pVbiBcmBuf, 1/*block*/);
+
     return (MV_THINVPP_OK);
 }
 
@@ -365,6 +368,9 @@ int MV_THINVPP_Config(void)
     THINVPP_SCL_Config(thinvpp_obj);
     THINVPP_CPCB_Config(thinvpp_obj);
     THINVPP_BE_Config(thinvpp_obj);
+
+    /* start BCM engine to program VPP registers */
+    THINVPP_BCMBUF_HardwareTrans(thinvpp_obj->pVbiBcmBuf, 1/*block*/);
 
     BCM_SCHED_SetMux(BCM_SCHED_Q0, 0); /* CPCB0 VBI -> Q0 */
 
@@ -469,6 +475,9 @@ int MV_THINVPP_SetCPCBOutputResolution(int cpcbID, int resID, int bit_depth)
         params[0] = cpcbID;
         params[1] = resID;
         VPP_SetCPCBOutputResolution(thinvpp_obj, params);
+
+        /* start BCM engine to program VPP registers */
+        THINVPP_BCMBUF_HardwareTrans(thinvpp_obj->pVbiBcmBuf, 1/*block*/);
 
         if (cpcbID == CPCB_1)
             MV_THINVPP_SetHdmiVideoFmt(OUTPUT_COLOR_FMT_RGB888, bit_depth, 1);
@@ -716,6 +725,9 @@ int MV_THINVPP_SetHdmiVideoFmt(int color_fmt, int bit_depth, int pixel_rept)
     THINVPP_BCMBUF_Select(thinvpp_obj->pVbiBcmBuf, cpcbID);
 
     THINVPP_BE_SetHdmiVideoFmt(thinvpp_obj);
+
+    /* start BCM engine to program VPP registers */
+    THINVPP_BCMBUF_HardwareTrans(thinvpp_obj->pVbiBcmBuf, 1/*block*/);
 
     return (MV_THINVPP_OK);
 }
