@@ -1506,6 +1506,249 @@ void diag_deassertReset_B()
 
 }
 
+void diag_powerDown_A()
+{
+	T32Gbl_avPllCtl regData;
+	T32Gbl_avPllCtl10 regData10;
+
+	BFM_HOST_Bus_Read32((MEMMAP_CHIP_CTRL_REG_BASE + RA_Gbl_avPllCtl), &regData.u32);
+	BFM_HOST_Bus_Read32((MEMMAP_CHIP_CTRL_REG_BASE + RA_Gbl_avPllCtl10), &regData10.u32);
+	regData.uavPllCtl_avPllPu_A = 0;
+	regData10.uavPllCtl_avPllPuC_A = 0;
+
+	BFM_HOST_Bus_Write32((MEMMAP_CHIP_CTRL_REG_BASE + RA_Gbl_avPllCtl), regData.u32);
+	BFM_HOST_Bus_Write32((MEMMAP_CHIP_CTRL_REG_BASE + RA_Gbl_avPllCtl10), regData10.u32);
+
+}
+
+void diag_powerUp_A()
+{
+	T32Gbl_avPllCtl regData;
+	T32Gbl_avPllCtl10 regData10;
+
+	BFM_HOST_Bus_Read32((MEMMAP_CHIP_CTRL_REG_BASE + RA_Gbl_avPllCtl), &regData.u32);
+	BFM_HOST_Bus_Read32((MEMMAP_CHIP_CTRL_REG_BASE + RA_Gbl_avPllCtl10), &regData10.u32);
+	regData.uavPllCtl_avPllPu_A = 1;
+	regData10.uavPllCtl_avPllPuC_A = 0x7f;
+
+	BFM_HOST_Bus_Write32((MEMMAP_CHIP_CTRL_REG_BASE + RA_Gbl_avPllCtl), regData.u32);
+	BFM_HOST_Bus_Write32((MEMMAP_CHIP_CTRL_REG_BASE + RA_Gbl_avPllCtl10), regData10.u32);
+}
+
+void diag_powerDown_B()
+{
+	T32Gbl_avPllCtl31 regData31;
+	T32Gbl_avPllCtl41 regData41;
+
+	BFM_HOST_Bus_Read32((MEMMAP_CHIP_CTRL_REG_BASE + RA_Gbl_avPllCtl31), &regData31.u32);
+	BFM_HOST_Bus_Read32((MEMMAP_CHIP_CTRL_REG_BASE + RA_Gbl_avPllCtl41), &regData41.u32);
+	regData31.uavPllCtl_avPllPu_B = 0;
+	regData41.uavPllCtl_avPllPuC_B = 0;
+
+	BFM_HOST_Bus_Write32((MEMMAP_CHIP_CTRL_REG_BASE + RA_Gbl_avPllCtl31), regData31.u32);
+	BFM_HOST_Bus_Write32((MEMMAP_CHIP_CTRL_REG_BASE + RA_Gbl_avPllCtl41), regData41.u32);
+}
+
+void diag_powerUp_B()
+{
+	T32Gbl_avPllCtl31 regData31;
+	T32Gbl_avPllCtl41 regData41;
+
+	BFM_HOST_Bus_Read32((MEMMAP_CHIP_CTRL_REG_BASE + RA_Gbl_avPllCtl31), &regData31.u32);
+	BFM_HOST_Bus_Read32((MEMMAP_CHIP_CTRL_REG_BASE + RA_Gbl_avPllCtl41), &regData41.u32);
+	regData31.uavPllCtl_avPllPu_B = 1;
+	regData41.uavPllCtl_avPllPuC_B = 0x7f;
+
+	BFM_HOST_Bus_Write32((MEMMAP_CHIP_CTRL_REG_BASE + RA_Gbl_avPllCtl31), regData31.u32);
+	BFM_HOST_Bus_Write32((MEMMAP_CHIP_CTRL_REG_BASE + RA_Gbl_avPllCtl41), regData41.u32);
+}
+
+void diag_calibrate_A(void)
+{
+	T32Gbl_avPllCtl1 regData1;
+	volatile int i;
+
+	//turn off caliberation
+	BFM_HOST_Bus_Read32((MEMMAP_CHIP_CTRL_REG_BASE + RA_Gbl_avPllCtl1), &regData1.u32);
+	regData1.uavPllCtl_avPllPllCaliStart_A=0;
+	BFM_HOST_Bus_Write32((MEMMAP_CHIP_CTRL_REG_BASE + RA_Gbl_avPllCtl1), regData1.u32);
+
+	//add some delay
+	for(i=0; i<10000; i++);
+
+	//enable caliberation
+	BFM_HOST_Bus_Read32((MEMMAP_CHIP_CTRL_REG_BASE + RA_Gbl_avPllCtl1), &regData1.u32);
+	regData1.uavPllCtl_avPllPllCaliStart_A=1;
+	BFM_HOST_Bus_Write32((MEMMAP_CHIP_CTRL_REG_BASE + RA_Gbl_avPllCtl1), regData1.u32);
+}
+
+void diag_calibrate_B(void)
+{
+	T32Gbl_avPllCtl32 regData32;
+	volatile int i;
+
+	//turn off caliberation
+	BFM_HOST_Bus_Read32((MEMMAP_CHIP_CTRL_REG_BASE + RA_Gbl_avPllCtl32), &regData32.u32);
+	regData32.uavPllCtl_avPllPllCaliStart_B=0;
+	BFM_HOST_Bus_Write32((MEMMAP_CHIP_CTRL_REG_BASE + RA_Gbl_avPllCtl32), regData32.u32);
+
+	//add some delay
+	for(i=0; i<10000; i++);
+
+	//enable caliberation
+	BFM_HOST_Bus_Read32((MEMMAP_CHIP_CTRL_REG_BASE + RA_Gbl_avPllCtl32), &regData32.u32);
+	regData32.uavPllCtl_avPllPllCaliStart_B=1;
+	BFM_HOST_Bus_Write32((MEMMAP_CHIP_CTRL_REG_BASE + RA_Gbl_avPllCtl32), regData32.u32);
+}
+
+//this function will enable AVPLL A and B and turn on caliberation
+void AVPLL_Enable(void)
+{
+	T32Gbl_avPllCtl31 regData31;
+	T32Gbl_avPllCtl32 regData32;
+
+	T32Gbl_avPllCtl12 regData12;
+	T32Gbl_avPllCtl1 regData1;
+	T32Gbl_avPllCtl regData;
+	T32Gbl_clkEnable  regClkEnable;
+	T32Gbl_PadSelect  regPadSelect;
+	T32Gbl_avPllCtl11 regData11;
+	T32Gbl_avPllCtl42 regData42;
+	T32Gbl_avPllCtl9 regData9;
+	T32Gbl_avPllCtl10 regData10;
+	T32Gbl_avPllCtl40 regData40;
+	T32Gbl_avPllCtl41 regData41;
+
+	volatile int i;
+	int avpll_initialized=0;
+
+	BFM_HOST_Bus_Read32((MEMMAP_CHIP_CTRL_REG_BASE + RA_Gbl_avPllCtl31), &regData31.u32);
+ 	//speed is not defaut value, then pll must has been initialized.
+	if(regData31.uavPllCtl_avPllSpeed_B != diag_avpllRegSPEED[0])
+		avpll_initialized=1;
+	//turn on the reset_A and reset_B
+	//these should be always on
+	BFM_HOST_Bus_Read32((MEMMAP_CHIP_CTRL_REG_BASE + RA_Gbl_avPllCtl11), &regData11.u32);
+	BFM_HOST_Bus_Read32((MEMMAP_CHIP_CTRL_REG_BASE + RA_Gbl_avPllCtl42), &regData42.u32);
+	regData11.uavPllCtl_avPllResetC_A = 0;
+	regData42.uavPllCtl_avPllResetC_B = 0;
+	BFM_HOST_Bus_Write32((MEMMAP_CHIP_CTRL_REG_BASE + RA_Gbl_avPllCtl11), regData11.u32);
+	if(!avpll_initialized)
+		BFM_HOST_Bus_Write32((MEMMAP_CHIP_CTRL_REG_BASE + RA_Gbl_avPllCtl42), regData42.u32);
+
+	//turn on offset
+	//these should be always on
+	BFM_HOST_Bus_Read32((MEMMAP_CHIP_CTRL_REG_BASE + RA_Gbl_avPllCtl9), &regData9.u32);
+	BFM_HOST_Bus_Read32((MEMMAP_CHIP_CTRL_REG_BASE + RA_Gbl_avPllCtl10), &regData10.u32);
+	regData9.uavPllCtl_avPllReserveC1_A = 1;
+	regData9.uavPllCtl_avPllReserveC2_A = 1;
+	regData10.uavPllCtl_avPllReserveC3_A = 1;
+	regData10.uavPllCtl_avPllReserveC4_A = 1;
+	regData10.uavPllCtl_avPllReserveC5_A = 1;
+	regData10.uavPllCtl_avPllReserveC6_A = 1;
+	regData10.uavPllCtl_avPllReserveC7_A = 1;
+	regData10.uavPllCtl_avPllReserveC8_A = 1;
+	BFM_HOST_Bus_Write32((MEMMAP_CHIP_CTRL_REG_BASE + RA_Gbl_avPllCtl9), regData9.u32);
+	BFM_HOST_Bus_Write32((MEMMAP_CHIP_CTRL_REG_BASE + RA_Gbl_avPllCtl10), regData10.u32);
+
+	BFM_HOST_Bus_Read32((MEMMAP_CHIP_CTRL_REG_BASE + RA_Gbl_avPllCtl40), &regData40.u32);
+	BFM_HOST_Bus_Read32((MEMMAP_CHIP_CTRL_REG_BASE + RA_Gbl_avPllCtl41), &regData41.u32);
+	regData40.uavPllCtl_avPllReserveC1_B = 1;
+	regData40.uavPllCtl_avPllReserveC2_B = 1;
+	regData41.uavPllCtl_avPllReserveC3_B = 1;
+	regData41.uavPllCtl_avPllReserveC4_B = 1;
+	regData41.uavPllCtl_avPllReserveC5_B = 1;
+	regData41.uavPllCtl_avPllReserveC6_B = 1;
+	regData41.uavPllCtl_avPllReserveC7_B = 1;
+	regData41.uavPllCtl_avPllReserveC8_B = 1;
+	if(!avpll_initialized) {
+		BFM_HOST_Bus_Write32((MEMMAP_CHIP_CTRL_REG_BASE + RA_Gbl_avPllCtl40), regData40.u32);
+		BFM_HOST_Bus_Write32((MEMMAP_CHIP_CTRL_REG_BASE + RA_Gbl_avPllCtl41), regData41.u32);
+	}
+
+        //set p9v to correct value
+        BFM_HOST_Bus_Read32((MEMMAP_CHIP_CTRL_REG_BASE + RA_Gbl_avPllCtl), &regData.u32);
+        BFM_HOST_Bus_Read32((MEMMAP_CHIP_CTRL_REG_BASE + RA_Gbl_avPllCtl31), &regData31.u32);
+        regData.uavPllCtl_avPllVddr1p45V_A = 1;
+        regData.uavPllCtl_avPllVddr0p9V_A = 10;
+        regData31.uavPllCtl_avPllVddr0p9V_B = 10;
+        regData.uavPllCtl_avPllVthVcoCal_A = 2;
+        regData31.uavPllCtl_avPllVthVcoCal_B = 2;
+        BFM_HOST_Bus_Write32((MEMMAP_CHIP_CTRL_REG_BASE + RA_Gbl_avPllCtl), regData.u32);
+	if(!avpll_initialized)
+        	BFM_HOST_Bus_Write32((MEMMAP_CHIP_CTRL_REG_BASE + RA_Gbl_avPllCtl31), regData31.u32);
+
+        //set ICP to correct value
+        BFM_HOST_Bus_Read32((MEMMAP_CHIP_CTRL_REG_BASE + RA_Gbl_avPllCtl1), &regData1.u32);
+        BFM_HOST_Bus_Read32((MEMMAP_CHIP_CTRL_REG_BASE + RA_Gbl_avPllCtl32), &regData32.u32);
+        regData1.uavPllCtl_avPllIcp_A = 5;
+        regData32.uavPllCtl_avPllIcp_B = 5;
+        BFM_HOST_Bus_Write32((MEMMAP_CHIP_CTRL_REG_BASE + RA_Gbl_avPllCtl1), regData1.u32);
+	if(!avpll_initialized)
+        	BFM_HOST_Bus_Write32((MEMMAP_CHIP_CTRL_REG_BASE + RA_Gbl_avPllCtl32), regData32.u32);
+
+	diag_assertReset_A();
+	if(!avpll_initialized)
+		diag_assertReset_B();
+
+	diag_setVCO_A(AVPLL_VCO_FREQ_2_227G);
+	if(!avpll_initialized)
+		diag_setVCO_B(AVPLL_VCO_FREQ_1_620G);
+
+	//power up
+	diag_powerUp_A();
+	if(!avpll_initialized)
+		diag_powerUp_B();
+
+	//reset, has delay inside function
+	diag_deassertReset_A();
+	if(!avpll_initialized)
+		diag_deassertReset_B();
+
+	//caliberate
+	diag_calibrate_A();
+	if(!avpll_initialized)
+		diag_calibrate_B();
+
+	//set up VCO frequency.
+	diag_setVCO_A(AVPLL_VCO_FREQ_2_227G);
+	if(!avpll_initialized)
+		diag_setVCO_B(AVPLL_VCO_FREQ_1_620G);
+
+	dbg_printf(PRN_RES, "Enabled AvPLL A and B Channels\n");
+
+	BFM_HOST_Bus_Read32((MEMMAP_CHIP_CTRL_REG_BASE + RA_Gbl_clkEnable), &regClkEnable.u32);
+	regClkEnable.uclkEnable_audio0ClkEn = 1;
+	regClkEnable.uclkEnable_audio1ClkEn = 1;
+	regClkEnable.uclkEnable_audio2ClkEn = 1;
+	regClkEnable.uclkEnable_audio3ClkEn = 1;
+	regClkEnable.uclkEnable_audioHdClkEn = 1;
+	regClkEnable.uclkEnable_video0ClkEn = 1;
+	regClkEnable.uclkEnable_video1ClkEn = 1;
+	regClkEnable.uclkEnable_video2ClkEn = 1;
+	BFM_HOST_Bus_Write32((MEMMAP_CHIP_CTRL_REG_BASE + RA_Gbl_clkEnable), regClkEnable.u32);
+
+	dbg_printf(PRN_RES, "Enable DVIO Pad\n");
+	BFM_HOST_Bus_Read32((MEMMAP_CHIP_CTRL_REG_BASE + RA_Gbl_PadSelect), &regPadSelect.u32);
+	regPadSelect.uPadSelect_DVIO_OEN = 1;
+	BFM_HOST_Bus_Write32((MEMMAP_CHIP_CTRL_REG_BASE + RA_Gbl_PadSelect), regPadSelect.u32);
+
+        for (i=0; i<8; i++) {
+            gAVPLLA_Channel_OutputClock[i] = 0;
+            gAVPLLB_Channel_OutputClock[i] = 0;
+        }
+
+#if (BERLIN_CHIP_VERSION >= BERLIN_BG2_A0)
+        diag_videoFreq_A(5, 0, 0, 1, 6); // set default video0clk to 148.5M
+        diag_videoFreq_A(5, 0, 0, 1, 5); // set default video1clk to 148.5M
+        diag_videoFreq_B(1, 2, 0, 1, 6); // set default video1clk to 148.5M
+#else
+        diag_videoFreq_A(5, 0, 0, 1, 1); // set default video0clk to 148.5M
+        diag_videoFreq_A(5, 0, 0, 1, 2); // set default video1clk to 148.5M
+        diag_videoFreq_B(1, 2, 0, 1, 1); // set default video1clk to 148.5M
+#endif
+}
+
 int divHDMICode[] = {
 	1, 2, 4, 6
 };
@@ -2123,6 +2366,84 @@ void diag_videoFreq_B(int freqIndex, int hdmiMode, int frameRate, int overSample
 
 }
 
+
+//freqIndex is the index into clock_freq[] array
+int diag_clockFreq_A(int freqIndex, int chId)
+{
+
+	if(freqIndex >= (sizeof(clk_freqs) / sizeof(CLK_FREQ)))
+	{
+		dbg_printf(PRN_RES, "freq Index not found\n");
+		return 1;
+	}
+
+	if(diag_pll_A_VCO_Setting != clk_freqs[freqIndex].vco_freq_index)
+	{
+		dbg_printf(PRN_RES, "VCO frequency is changed to %f!\n",
+			diag_vcoFreqs[clk_freqs[freqIndex].vco_freq_index]);
+
+		diag_setVCO_A(clk_freqs[freqIndex].vco_freq_index);
+	}
+
+	//change offset
+	diag_setChanOffset_A(clk_freqs[freqIndex].freq_offset, chId);
+
+	//change p_sync
+	diag_setDPll_A((clk_freqs[freqIndex].p_sync1!=0),
+			clk_freqs[freqIndex].p_sync1,
+			clk_freqs[freqIndex].p_sync2, chId);
+
+	//disable all dividers
+	diag_setHDMI_Div_A(0, chId);
+	diag_setAV_Div_A(0, 0, chId);
+	diag_setAV3_Div_A(0, 0, chId);
+
+	//update now div
+	diag_setAV_Div_A(clk_freqs[freqIndex].divAV1, clk_freqs[freqIndex].divAV2, chId);
+	diag_setAV3_Div_A(clk_freqs[freqIndex].divAV2, clk_freqs[freqIndex].divAV3, chId);
+
+
+	return 0;
+
+}
+
+int diag_clockFreq_B(int freqIndex, int chId)
+{
+	if(freqIndex >= (sizeof(clk_freqs) / sizeof(CLK_FREQ)))
+	{
+		dbg_printf(PRN_RES, "freq Index not found\n");
+		return 1;
+	}
+
+	if(diag_pll_B_VCO_Setting != clk_freqs[freqIndex].vco_freq_index)
+	{
+		dbg_printf(PRN_RES, "VCO frequency is changed to %f!\n",
+			diag_vcoFreqs[clk_freqs[freqIndex].vco_freq_index]);
+
+		diag_setVCO_B(clk_freqs[freqIndex].vco_freq_index);
+	}
+
+	//change offset
+	diag_setChanOffset_B(clk_freqs[freqIndex].freq_offset, chId);
+
+	//change p_sync
+	diag_setDPll_B((clk_freqs[freqIndex].p_sync1!=0),
+			clk_freqs[freqIndex].p_sync1,
+			clk_freqs[freqIndex].p_sync2, chId);
+
+	//disable all dividers
+	diag_setHDMI_Div_B(0, chId);
+	diag_setAV_Div_B(0, 0, chId);
+	diag_setAV3_Div_B(0, 0, chId);
+
+	//update now div
+	diag_setAV_Div_B(clk_freqs[freqIndex].divAV1, clk_freqs[freqIndex].divAV2, chId);
+	diag_setAV3_Div_B(clk_freqs[freqIndex].divAV2, clk_freqs[freqIndex].divAV3, chId);
+
+
+	return 0;
+}
+
 int get_freqTabIndex(int vco_freq_index, int av_freq_index)
 {
 	int i, tab_index=-1;
@@ -2135,6 +2456,30 @@ int get_freqTabIndex(int vco_freq_index, int av_freq_index)
 		}
 	}
 	return tab_index;
+}
+
+int AVPLL_Set(int groupId, int chanId, int avFreqIndex)
+{
+	int freqTabIndex;
+
+	if(groupId==0)	// PLL A
+	{
+		// Search freqIndex in lookup table by avFreqIndex and vco_freq_index.
+		freqTabIndex = get_freqTabIndex(diag_pll_A_VCO_Setting, avFreqIndex);
+		if(freqTabIndex == -1)
+			return -1;
+		diag_clockFreq_A(freqTabIndex, chanId);
+	}
+	else if(groupId==1) // PLL B
+	{
+		freqTabIndex = get_freqTabIndex(diag_pll_B_VCO_Setting, avFreqIndex);
+		if(freqTabIndex == -1)
+			return -1;
+
+		diag_clockFreq_B(freqTabIndex, chanId);
+	}
+
+	return 0;
 }
 
 // secondary MCLK keeps 4x, other MCLK div4 to 1x

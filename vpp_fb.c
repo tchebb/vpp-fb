@@ -41,6 +41,8 @@
 #include "api_avio_dhub.h"
 #include "memmap.h"
 
+#include "avpll.h"
+
 #if LOGO_USE_SHM
 #include "shm_api.h"
 #include "shm_type.h"
@@ -287,6 +289,7 @@ static int vpp_fb_set_par(struct fb_info *info)
 	MV_THINVPP_Create(MEMMAP_VPP_REG_BASE, &par->fastlogo_ctx);
 	MV_THINVPP_Reset();
 	MV_THINVPP_Config();
+	AVPLL_Enable();
 
 	/* set output resolution */
 	MV_THINVPP_SetCPCBOutputResolution(CPCB_1, RES_525P5994, OUTPUT_BIT_DEPTH_8BIT);
