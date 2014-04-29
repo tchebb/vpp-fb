@@ -537,7 +537,6 @@ int MV_THINVPP_OpenDispWindow(int planeID, VPP_WIN *win, VPP_WIN_ATTR *attr)
     PLANE *plane;
     CHAN *chan;
 
-
     if (!thinvpp_obj)
         return (MV_THINVPP_ENODEV);
 
