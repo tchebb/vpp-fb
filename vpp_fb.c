@@ -101,10 +101,10 @@ static struct fb_fix_screeninfo vpp_fb_fix __devinitdata = {
 };
 
 static struct fb_var_screeninfo vpp_fb_var __devinitdata = {
-	.xres = 720,
-	.yres = 480,
-	.xres_virtual = 720,
-	.yres_virtual = 480,
+	.xres = 1280,
+	.yres = 720,
+	.xres_virtual = 1280,
+	.yres_virtual = 720,
 	.bits_per_pixel = 16,
 	.grayscale = V4L2_PIX_FMT_YUYV,
 };
@@ -292,14 +292,14 @@ static int vpp_fb_set_par(struct fb_info *info)
 	AVPLL_Enable();
 
 	/* set output resolution */
-	MV_THINVPP_SetCPCBOutputResolution(CPCB_1, RES_525P5994, OUTPUT_BIT_DEPTH_8BIT);
+	MV_THINVPP_SetCPCBOutputResolution(CPCB_1, RES_720P5994, OUTPUT_BIT_DEPTH_8BIT);
 
 	// use MAIN plane
 	par->fastlogo_ctx.planes = 1;
 	par->fastlogo_ctx.win.x = 0;
 	par->fastlogo_ctx.win.y = 0;
-	par->fastlogo_ctx.win.width = 720;
-	par->fastlogo_ctx.win.height = 480;
+	par->fastlogo_ctx.win.width = 1280;
+	par->fastlogo_ctx.win.height = 720;
 	MV_THINVPP_SetMainDisplayFrame(&vbuf);
 	MV_THINVPP_OpenDispWindow(PLANE_MAIN, &par->fastlogo_ctx.win, NULL);
 
