@@ -107,28 +107,26 @@ unsigned int diag_avpllRegFREQ_OFFSET_C8[]=
 
 unsigned int diag_avpllRegSPEED[]=
 {
-	0x0,	//1.08G<F<= 1.21G, for 1.08G
-	0x0,	//1.21G<F<=1.4G	   for 1.26G
-	0x1,	//1.21G<F<=1.4G	   for 1.35G
-	0x2,	//1.4G<F<=1.61G    for 1.48G
-	0x2,	//1.4G<F<=1.61G    for 1.51G
-	0x3, 	//1.61G<F<= 1.86G  for 1.62G
-	0x4, 	//1.61G<F<= 1.86G  for 1.85G
-//	0x4,	//1.86G<F<= 2G	   not used
-//	0x5,	//2G<F<=2.22G      not used
-	0x6,	//F> 2.22G         for 2.22G
+        0x0,    //1.08G<F<= 1.21G, for 1.08G
+        0x2,    //1.21G<F<=1.4G    for 1.26G
+        0x2,    //1.21G<F<=1.4G    for 1.35G
+        0x3,    //1.4G<F<=1.61G    for 1.48G
+        0x3,    //1.4G<F<=1.61G    for 1.51G
+        0x4,    //1.61G<F<= 1.86G  for 1.62G
+        0x5,    //1.61G<F<= 1.86G  for 1.85G
+        0x6,    //F> 2.22G         for 2.22G
 };
 
 unsigned int diag_avpllRegINTPI[]=
 {
-	0x2,	//1G~1.4		for 1.08G
-	0x2,	//1G~1.4		for 1.26G
-	0x2,	//1G~1.4		for 1.35G
-	0x3,	//1.4G~1.8G		for 1.48G
-	0x3,	//1.4G~1.8G		for 1.51G
-	0x3, 	//1.4G~1.8G		for 1.62G
-	0x4, 	//1.8G~2.25G	for 1.85G
-	0x4,	//1.8G~2.25G    for 2.22G
+        0x3,    //1G~1.4                for 1.08G
+        0x3,    //1G~1.4                for 1.26G
+        0x3,    //1G~1.4                for 1.35G
+        0x4,    //1.4G~1.8G             for 1.48G
+        0x4,    //1.4G~1.8G             for 1.51G
+        0x4,    //1.4G~1.8G             for 1.62G
+        0x5,    //1.8G~2.25G    for 1.85G
+        0x5,    //1.8G~2.25G    for 2.22G
 };
 
 
