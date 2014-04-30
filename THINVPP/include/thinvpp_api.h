@@ -1904,22 +1904,6 @@ typedef struct
 
     unsigned *logo_frame_dma_cmd;
 
-#if LOGO_USE_SHM
-    size_t mSHMOffset;
-    unsigned mSHMSize;
-
-    char * bcmQ;
-    unsigned bcmQ_phys;
-    unsigned bcmQ_len;
-
-    char * dmaQ;
-    unsigned dmaQ_phys;
-    unsigned dmaQ_len;
-
-    char * cfgQ;
-    unsigned cfgQ_phys;
-    unsigned cfgQ_len;
-#endif
 } logo_device_t;
 
 /************* VPP module external APIs *****************/
