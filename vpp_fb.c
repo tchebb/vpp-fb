@@ -43,12 +43,6 @@
 
 #include "avpll.h"
 
-#if LOGO_USE_SHM
-#include "shm_api.h"
-#include "shm_type.h"
-extern shm_device_t *shm_api_device_noncache;
-#endif
-
 // TODO: Proper return values
 
 /*******************************************************************************
@@ -153,21 +147,14 @@ static void fastlogo_device_exit(struct fb_info *info)
 
 	msleep(100); //100 milliseconds
 	MV_THINVPP_Destroy();
-#if LOGO_USE_SHM
-	if (par->fastlogo_ctx.mSHMOffset != ERROR_SHM_MALLOC_FAILED)
-	{
-		MV_SHM_NONCACHE_Free(par->fastlogo_ctx.mSHMOffset);
-		par->fastlogo_ctx.logoBuf = NULL;
-		par->fastlogo_ctx.mSHMOffset = ERROR_SHM_MALLOC_FAILED;
-	}
-#else
+
+	// FIX ME! Wrong pointer for free!
 	if (par->fastlogo_ctx.logoBuf) {
 		dma_unmap_single(NULL, (dma_addr_t)par->fastlogo_ctx.mapaddr, par->fastlogo_ctx.length, DMA_TO_DEVICE);
 		gs_trace("will free pBuf OK\n");
 		kfree(par->fastlogo_ctx.logoBuf);
 		par->fastlogo_ctx.logoBuf = NULL;
 	}
-#endif
 
 	/* unregister VPP interrupt */
 	msleep(100); //100 milliseconds
@@ -186,8 +173,10 @@ static int vpp_fb_check_var(struct fb_var_screeninfo *var, struct fb_info *info)
 static int vpp_fb_set_par(struct fb_info *info)
 {
 	struct vpp_fb_par *par = info->par;
-	int err;
+	int err = -ENOMEM;
 	int vres;
+	unsigned alloc_length;
+	void* unalig_buf;
 
 	// TODO: Fix this also (fb_screeninfo_var?)
 	static VBUF_INFO vbuf;
@@ -208,6 +197,13 @@ static int vpp_fb_set_par(struct fb_info *info)
 		return -EINVAL; // do nothing if vres is not supported
 	}
 
+	if (info->var.xres != 1280 || info->var.yres != 720){
+		gs_trace("vpp_fb does not support xres=%d, yres=%d\n",
+			info->var.xres,
+			info->var.yres);
+		return -EINVAL;
+	}
+
 	/* create PE device */
 
 	/* set up logo frame */
@@ -223,41 +219,11 @@ static int vpp_fb_set_par(struct fb_info *info)
 	info->fix.line_length = vbuf.m_buf_stride;
 
 	par->fastlogo_ctx.length = vbuf.m_buf_stride * vbuf.m_active_height;
+	alloc_length = par->fastlogo_ctx.length + PAGE_SIZE;
+	unalig_buf = kmalloc(alloc_length, GFP_KERNEL | GFP_DMA);
+	par->fastlogo_ctx.logoBuf = (void*)ALIGN((uintptr_t)unalig_buf, PAGE_SIZE);
 
-#if LOGO_USE_SHM
-	// use MV_SHM for logo buffer and 3 dhub queues to have contiguous memory
-	par->fastlogo_ctx.mSHMSize = par->fastlogo_ctx.length +
-		par->fastlogo_ctx.bcmQ_len + par->fastlogo_ctx.dmaQ_len + par->fastlogo_ctx.cfgQ_len;
-
-	par->fastlogo_ctx.mSHMOffset = MV_SHM_NONCACHE_Malloc(par->fastlogo_ctx.mSHMSize, 4096);
-	if (par->fastlogo_ctx.mSHMOffset == ERROR_SHM_MALLOC_FAILED)
-	{
-		return -1;
-	}
-
-	par->fastlogo_ctx.logoBuf = (int *) MV_SHM_GetNonCacheVirtAddr(par->fastlogo_ctx.mSHMOffset);
-	par->fastlogo_ctx.mapaddr = (unsigned int *) MV_SHM_GetNonCachePhysAddr(par->fastlogo_ctx.mSHMOffset);
-
-	// arrange dhub queues and commands
-	{
-		char *shm = (char *) par->fastlogo_ctx.logoBuf;
-		unsigned shm_phys = (unsigned) par->fastlogo_ctx.mapaddr;
-		par->fastlogo_ctx.bcmQ_len = BCM_BUFFER_SIZE;
-		par->fastlogo_ctx.dmaQ_len = 8*8;
-		par->fastlogo_ctx.cfgQ_len = 8*8;
-		par->fastlogo_ctx.bcmQ = shm + par->fastlogo_ctx.length;
-		par->fastlogo_ctx.dmaQ = par->fastlogo_ctx.bcmQ + par->fastlogo_ctx.bcmQ_len;
-		par->fastlogo_ctx.cfgQ = par->fastlogo_ctx.dmaQ + par->fastlogo_ctx.dmaQ_len;
-		par->fastlogo_ctx.bcmQ_phys = shm_phys + par->fastlogo_ctx.length;
-		par->fastlogo_ctx.dmaQ_phys = par->fastlogo_ctx.bcmQ_phys + par->fastlogo_ctx.bcmQ_len;
-		par->fastlogo_ctx.cfgQ_phys = par->fastlogo_ctx.dmaQ_phys + par->fastlogo_ctx.dmaQ_len;
-
-		memset(par->fastlogo_ctx.bcmQ, 0, BCM_BUFFER_SIZE);
-
-		vbuf.m_pbuf_start = (void *) shm_phys;
-	}
-#else
-	par->fastlogo_ctx.logoBuf = kmalloc(par->fastlogo_ctx.length, GFP_KERNEL);
+	printk("fastlogo_ctx.logoBuf: %p\n", par->fastlogo_ctx.logoBuf);
 	if (!par->fastlogo_ctx.logoBuf) {
 		gs_trace("kmalloc error\n");
 		return err;
@@ -265,15 +231,17 @@ static int vpp_fb_set_par(struct fb_info *info)
 
 	par->fastlogo_ctx.mapaddr = (unsigned int *)dma_map_single(NULL, par->fastlogo_ctx.logoBuf, par->fastlogo_ctx.length, DMA_TO_DEVICE);
 	err = dma_mapping_error(NULL, (dma_addr_t)par->fastlogo_ctx.logoBuf);
+	printk("fastlogo_ctx.mapaddr: %p\n", par->fastlogo_ctx.mapaddr);
 	if (err) {
 		gs_trace("dma_mapping_error\n");
+		/* FIX ME, wrong pointer! */
 		kfree(par->fastlogo_ctx.logoBuf);
 		par->fastlogo_ctx.logoBuf = NULL;
 		return err;
 	}
+
 	outer_cache.flush_range(virt_to_phys(par->fastlogo_ctx.logoBuf), virt_to_phys(par->fastlogo_ctx.logoBuf)+par->fastlogo_ctx.length);
-	vbuf.m_pbuf_start = virt_to_phys(par->fastlogo_ctx.logoBuf);
-#endif
+	vbuf.m_pbuf_start = (void*)virt_to_phys(par->fastlogo_ctx.logoBuf);
 
 	// initialize buffer
 	// TODO: YUV/RGB?
@@ -298,8 +266,8 @@ static int vpp_fb_set_par(struct fb_info *info)
 	par->fastlogo_ctx.planes = 1;
 	par->fastlogo_ctx.win.x = 0;
 	par->fastlogo_ctx.win.y = 0;
-	par->fastlogo_ctx.win.width = 1280;
-	par->fastlogo_ctx.win.height = 720;
+	par->fastlogo_ctx.win.width = info->var.xres;
+	par->fastlogo_ctx.win.height = info->var.yres;
 	MV_THINVPP_SetMainDisplayFrame(&vbuf);
 	MV_THINVPP_OpenDispWindow(PLANE_MAIN, &par->fastlogo_ctx.win, NULL);
 
@@ -333,7 +301,6 @@ static int __init vpp_fb_probe (struct platform_device *pdev)
 	struct fb_info *info;
 	struct vpp_fb_par *par;
 	struct device *device = &pdev->dev;
-	int cmap_len, retval;	
 
 	/*
 	 * Dynamically allocate info and par

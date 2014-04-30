@@ -195,7 +195,7 @@ void THINVPP_BCMBUF_HardwareTrans(BCMBUF *pbcmbuf, int block)
     HDL_dhub2d *pDhubHandle;
     unsigned int bcm_sched_cmd[2];
     int dhubID;
-    unsigned int *start;
+    void *start;
     int status;
     int size;
 
@@ -211,11 +211,8 @@ void THINVPP_BCMBUF_HardwareTrans(BCMBUF *pbcmbuf, int block)
 
     /* flush data in D$ */
     FLUSH_DCACHE_RANGE(start, size);
-#if LOGO_USE_SHM
-    start = pbcmbuf->phys;
-#else
-    start = (unsigned int *)virt_to_phys(start);
-#endif
+    start = (void*)virt_to_phys(start);
+    printk("virt_to_phys(start): %p\n", start);
 
     /* start BCM engine */
     dhubID = avioDhubChMap_vpp_BCM_R;
