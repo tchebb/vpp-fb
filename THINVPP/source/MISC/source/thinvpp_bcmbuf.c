@@ -60,8 +60,8 @@ int THINVPP_BCMBUF_Create(BCMBUF *pbcmbuf, int size)
         return (MV_THINVPP_EBADPARAM);
 
     /* allocate memory for the buffer */
-    pcmbuf->addr = (int)THINVPP_MALLOC(size + BCMBUF_ALIGN);
-    if(!pcmbuf->addr)
+    pbcmbuf->addr = (uintptr_t)THINVPP_MALLOC(size + BCMBUF_ALIGN);
+    if(!pbcmbuf->addr)
         return MV_THINVPP_ENOMEM;
 
     pbcmbuf->size = size;
