@@ -252,7 +252,7 @@ typedef struct VPP_FRC_SCL_NEW_T{
 }VPP_FRC_SCL_NEW, *PVPP_FRC_SCL_NEW;
 
 /*FRC SCL register default values*/
-#if LOGO_ENABLE_MAIN
+#if VPPFB_ENABLE_MAIN
 const VPP_FRC_SCL gFrcScl0DefValues = {
     .VPP_FRC_CTRL0  			   = 0x00000000,
     .VPP_FRC_DLY_FRST_DE     = 0x00000014,
@@ -310,7 +310,7 @@ const VPP_FRC_SCL gFrcScl0DefValues = {
     .VPP_SCL_ALPH_CTRL       = 0x00000002,//32 bit 8888 osd: Formatter Bypass for 32 bit OSD
 };
 #endif
-#if LOGO_ENABLE_PIP
+#if VPPFB_ENABLE_PIP
 const VPP_FRC_SCL gFrcScl1DefValues = {
     .VPP_FRC_CTRL0  			   = 0x00000000,
     .VPP_FRC_DLY_FRST_DE     = 0x00000014,

@@ -128,7 +128,7 @@ int FRC_SCL_LoadDefaultVal(THINVPP_OBJ *vpp_obj, int UnitNum)
     int RetVal = MV_THINVPP_OK;
 
     switch(UnitNum){
-#if LOGO_ENABLE_MAIN
+#if VPPFB_ENABLE_MAIN
         case VPP_FRC_SCL_MAIN:
             WRITE_FRC_SCL_DEFAULT_VAL(UnitNum, FRC_CTRL0, gFrcScl0DefValues);
             WRITE_FRC_SCL_DEFAULT_VAL(UnitNum, FRC_DLY_FRST_DE, gFrcScl0DefValues);
@@ -189,7 +189,7 @@ int FRC_SCL_LoadDefaultVal(THINVPP_OBJ *vpp_obj, int UnitNum)
             WRITE_FRC_SCL_DEFAULT_VAL_32BITS(RA_Vpp_main_ols, gFrcSclNewDefValues);
             break;
 #endif
-#if LOGO_ENABLE_PIP
+#if VPPFB_ENABLE_PIP
         case VPP_FRC_SCL_PIP:
             WRITE_FRC_SCL_DEFAULT_VAL(UnitNum, FRC_CTRL0, gFrcScl1DefValues);
             WRITE_FRC_SCL_DEFAULT_VAL(UnitNum, FRC_DLY_FRST_DE, gFrcScl1DefValues);

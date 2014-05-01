@@ -39,7 +39,7 @@ int THINVPP_SCL_Reset(THINVPP_OBJ *vpp_obj)
 #endif
 #endif
 
-#if LOGO_ENABLE_MAIN
+#if VPPFB_ENABLE_MAIN
     FE_DLR_LoadDefaultVal(vpp_obj, VPP_FE_DLR_CHANNEL_MAIN);
     FRC_SCL_LoadDefaultVal(vpp_obj, VPP_FRC_SCL_MAIN);
 #else
@@ -64,7 +64,7 @@ int THINVPP_SCL_Reset(THINVPP_OBJ *vpp_obj)
  *********************************************************************/
 int THINVPP_SCL_Config(THINVPP_OBJ *vpp_obj)
 {
-#if LOGO_ENABLE_MAIN
+#if VPPFB_ENABLE_MAIN
     if (vpp_obj->chan[CHAN_MAIN].dvID != DV_INVALID){
         FE_DLR_ClearOffLineChannel(vpp_obj, VPP_FE_DLR_OFFLINE_MAIN_R, 1);
         FE_DLR_ClearOffLineChannel(vpp_obj, VPP_FE_DLR_OFFLINE_MAIN_W, 0);

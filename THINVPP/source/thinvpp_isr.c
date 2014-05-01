@@ -160,9 +160,9 @@ static int startChannelDataLoader(THINVPP_OBJ *vpp_obj, int chanID)
                 plane->ref_win.x, plane->ref_win.y, plane->ref_win.width, plane->ref_win.height);
 
             /* start data loader DMA to load display content */
-            vpp_obj->dv[CPCB_1].curr_cpcb_vbi_dma_cfgQ->len += START_2DDMA(plane->dmaRdhubID, plane->dmaRID,
+            vpp_obj->dv[CPCB_1].vbi_dma_cfgQ.len += START_2DDMA(plane->dmaRdhubID, plane->dmaRID,
                 (unsigned int)frame_addr, pinfo->m_buf_stride, plane->wpl*8, plane->actv_win.height,
-                (unsigned int (*)[2])(vpp_obj->dv[CPCB_1].curr_cpcb_vbi_dma_cfgQ->addr+vpp_obj->dv[CPCB_1].curr_cpcb_vbi_dma_cfgQ->len*2));
+                (unsigned int (*)[2])(vpp_obj->dv[CPCB_1].vbi_dma_cfgQ.addr+vpp_obj->dv[CPCB_1].vbi_dma_cfgQ.len*2));
 
             /* start read-back data loader */
             FE_DLR_EnableChannel(vpp_obj, dlr_id, 1);
@@ -204,9 +204,9 @@ static int startChannelDataLoader(THINVPP_OBJ *vpp_obj, int chanID)
             }
 
             /* start data loader DMA to load display content */
-            vpp_obj->dv[CPCB_1].curr_cpcb_vbi_dma_cfgQ->len += START_2DDMA(plane->dmaRdhubID, plane->dmaRID,
+            vpp_obj->dv[CPCB_1].vbi_dma_cfgQ.len += START_2DDMA(plane->dmaRdhubID, plane->dmaRID,
                 (unsigned int)frame_addr, pinfo->m_buf_stride, plane->wpl*8, plane->actv_win.height,
-                (unsigned int (*)[2])(vpp_obj->dv[CPCB_1].curr_cpcb_vbi_dma_cfgQ->addr+vpp_obj->dv[CPCB_1].curr_cpcb_vbi_dma_cfgQ->len*2));
+                (unsigned int (*)[2])(vpp_obj->dv[CPCB_1].vbi_dma_cfgQ.addr+vpp_obj->dv[CPCB_1].vbi_dma_cfgQ.len*2));
 
             /* start read-back data loader */
             FE_DLR_EnableChannel(vpp_obj, dlr_id, 1);
@@ -229,32 +229,14 @@ static int startChannelDataLoader(THINVPP_OBJ *vpp_obj, int chanID)
 
 static void toggleQ(THINVPP_OBJ *vpp_obj, int cpcbID)
 {
-    THINVPP_BCMBUF_To_CFGQ(vpp_obj->pVbiBcmBuf, vpp_obj->dv[cpcbID].curr_cpcb_vbi_bcm_cfgQ);
-    THINVPP_BCMDHUB_CFGQ_Commit(vpp_obj->dv[cpcbID].curr_cpcb_vbi_bcm_cfgQ, cpcbID);
-
-#if !LOGO_USE_SHM
-    // do no need double buffers for dhub queues
-    if (vpp_obj->pVbiBcmBufCpcb[cpcbID] == &vpp_obj->vbi_bcm_buf[0])
-        vpp_obj->pVbiBcmBufCpcb[cpcbID] = &vpp_obj->vbi_bcm_buf[1];
-    else
-        vpp_obj->pVbiBcmBufCpcb[cpcbID] = &vpp_obj->vbi_bcm_buf[0];
-
-    if (vpp_obj->dv[cpcbID].curr_cpcb_vbi_dma_cfgQ == &vpp_obj->dv[cpcbID].vbi_dma_cfgQ[0])
-        vpp_obj->dv[cpcbID].curr_cpcb_vbi_dma_cfgQ = &(vpp_obj->dv[cpcbID].vbi_dma_cfgQ[1]);
-    else
-        vpp_obj->dv[cpcbID].curr_cpcb_vbi_dma_cfgQ = &(vpp_obj->dv[cpcbID].vbi_dma_cfgQ[0]);
-
-    if (vpp_obj->dv[cpcbID].curr_cpcb_vbi_bcm_cfgQ == &vpp_obj->dv[cpcbID].vbi_bcm_cfgQ[0])
-        vpp_obj->dv[cpcbID].curr_cpcb_vbi_bcm_cfgQ = &(vpp_obj->dv[cpcbID].vbi_bcm_cfgQ[1]);
-    else
-        vpp_obj->dv[cpcbID].curr_cpcb_vbi_bcm_cfgQ = &(vpp_obj->dv[cpcbID].vbi_bcm_cfgQ[0]);
-#endif
+    THINVPP_BCMBUF_To_CFGQ(vpp_obj->pVbiBcmBuf, &(vpp_obj->dv[cpcbID].vbi_bcm_cfgQ));
+    THINVPP_BCMDHUB_CFGQ_Commit(&(vpp_obj->dv[cpcbID].vbi_bcm_cfgQ), cpcbID);
 }
 
 static void prepareQ(THINVPP_OBJ *vpp_obj, int cpcbID)
 {
-    vpp_obj->dv[cpcbID].curr_cpcb_vbi_bcm_cfgQ->len = 0;
-    vpp_obj->dv[cpcbID].curr_cpcb_vbi_dma_cfgQ->len = 0;
+    vpp_obj->dv[cpcbID].vbi_bcm_cfgQ.len = 0;
+    vpp_obj->dv[cpcbID].vbi_dma_cfgQ.len = 0;
     vpp_obj->pVbiBcmBuf = vpp_obj->pVbiBcmBufCpcb[cpcbID];
     THINVPP_BCMBUF_Select(vpp_obj->pVbiBcmBuf, cpcbID);
 }
@@ -281,18 +263,18 @@ void THINVPP_CPCB_ISR_service(THINVPP_OBJ *vpp_obj, int cpcbID)
     case STATUS_ACTIVE:
         /*when change cpcb output resolution, status was set to inactive, Dhub should be stopped at this moment*/
 
-		/* stop fast-logo */
-		if(stop_flag == 1)
-		{
-			pDV->status = STATUS_STOP;
-			break;
-		}
+	/* stop vpp-fb */
+	if(stop_flag == 1)
+	{
+		pDV->status = STATUS_STOP;
+		break;
+	}
 
-		prepareQ(vpp_obj, cpcbID);
+	prepareQ(vpp_obj, cpcbID);
 
         startChannelDataLoader(vpp_obj, CHAN_MAIN);
 
-		THINVPP_CFGQ_To_CFGQ(vpp_obj->dv[CPCB_1].curr_cpcb_vbi_dma_cfgQ, vpp_obj->dv[CPCB_1].curr_cpcb_vbi_bcm_cfgQ);
+	THINVPP_CFGQ_To_CFGQ(&(vpp_obj->dv[CPCB_1].vbi_dma_cfgQ), &(vpp_obj->dv[CPCB_1].vbi_bcm_cfgQ));
         toggleQ(vpp_obj, cpcbID);
         break;
 
@@ -304,7 +286,7 @@ void THINVPP_CPCB_ISR_service(THINVPP_OBJ *vpp_obj, int cpcbID)
         params[1] = RES_RESET;
         VPP_SetCPCBOutputResolution(vpp_obj, params);
 
-        THINVPP_CFGQ_To_CFGQ(vpp_obj->dv[CPCB_1].curr_cpcb_vbi_dma_cfgQ, vpp_obj->dv[CPCB_1].curr_cpcb_vbi_bcm_cfgQ);
+        THINVPP_CFGQ_To_CFGQ(&(vpp_obj->dv[CPCB_1].vbi_dma_cfgQ), &(vpp_obj->dv[CPCB_1].vbi_bcm_cfgQ));
         toggleQ(vpp_obj, cpcbID);
 
         /* disable interrupt */

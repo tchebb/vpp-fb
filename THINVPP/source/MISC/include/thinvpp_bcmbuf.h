@@ -29,9 +29,6 @@ typedef struct DHUB_CFGQ_T {
     int base_addr;
     int *addr;
     int len;
-#if LOGO_USE_SHM
-    unsigned phys;
-#endif
 } DHUB_CFGQ;
 
 /* structure of a buffer descriptor */
@@ -39,10 +36,6 @@ typedef struct DHUB_CFGQ_T {
 typedef struct BCMBUF_T {
     int addr;
     unsigned int *head;          // head of total BCM buffer
-    unsigned int *dv1_head;      // head of BCM sub-buffer used for CPCB0
-#if LOGO_USE_SHM
-    unsigned phys;
-#endif
     unsigned int *tail;          // tail of the buffer, used for checking wrap around
     unsigned int *writer;        // write pointer of queue, update with shadow_tail with commit
     int size;                    // size of total BCM buffer
@@ -58,11 +51,7 @@ typedef struct BCMBUF_T {
  * RETURN:  1 - succeed
  *          0 - failed to initialize a BCM buffer
  ****************************************************************/
-#if LOGO_USE_SHM
-int THINVPP_BCMBUF_Set(BCMBUF *pbcmbuf, void* addr, unsigned phys, int size);
-#else
 int THINVPP_BCMBUF_Create(BCMBUF *pbcmbuf,int size);
-#endif
 
 /***************************************************************
  * FUNCTION: free register programming buffer
@@ -105,11 +94,7 @@ int THINVPP_BCMBUF_Write(BCMBUF *pbcmbuf, unsigned int address, unsigned int val
 void THINVPP_BCMBUF_HardwareTrans(BCMBUF *pbcmbuf, int block);
 
 
-#if LOGO_USE_SHM
-int THINVPP_CFGQ_Set(DHUB_CFGQ *cfgQ,void* addr, unsigned phys, int size);
-#else
 int THINVPP_CFGQ_Create(DHUB_CFGQ *cfgQ, int size);
-#endif
 int THINVPP_CFGQ_Destroy(DHUB_CFGQ *cfgQ);
 
 /*******************************************************************************

@@ -215,10 +215,8 @@ typedef struct DV_T {
     int voutID[MAX_NUM_VOUTS]; // ID of the VOUTs, which belong to this DV
     int output_res;            // ID of CPCB(for Berlin) or DV(for Galois) output resolution, i.e. end display resolution
 
-    DHUB_CFGQ vbi_dma_cfgQ[2];
-    DHUB_CFGQ *curr_cpcb_vbi_dma_cfgQ;
-    DHUB_CFGQ vbi_bcm_cfgQ[2];
-    DHUB_CFGQ *curr_cpcb_vbi_bcm_cfgQ;
+    DHUB_CFGQ vbi_dma_cfgQ;
+    DHUB_CFGQ vbi_bcm_cfgQ;
 
     volatile int vbi_num;     // VBI interrupt counter
 } DV;
@@ -413,11 +411,11 @@ typedef struct THINVPP_OBJ_T {
     UINT32 dhub_cmdQ[avioDhubChMap_vpp_SPDIF_W];
 #endif //(BERLIN_CHIP_VERSION != BERLIN_BG2CD_A0)
 
-    BCMBUF vbi_bcm_buf[2];
+    BCMBUF vbi_bcm_buf;
     BCMBUF *pVbiBcmBufCpcb[VPP_CPCB_MAX];
     BCMBUF *pVbiBcmBuf;    //pointer to the VBI BCM buffer in use
 
-    logo_device_t *fastlogo_ctx;
+    fb_device_t *vppfb_ctx;
 } THINVPP_OBJ;
 
 
