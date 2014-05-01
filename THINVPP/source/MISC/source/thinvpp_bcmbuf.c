@@ -31,14 +31,14 @@
 #include <asm/outercache.h>
 #include <asm/io.h>
 
-#define FLUSH_DCACHE_RANGE(start, size) __cpuc_flush_dcache_area(start, size)
+#define FLUSH_DCACHE_RANGE(start, size) inner_outer_flush_dcache_area(start, size)
 #define BCMBUF_ALIGN	0x20
 
 static void inner_outer_flush_dcache_area(void *addr, size_t length)
 {
 	phys_addr_t start, end;
 
-    __cpuc_flush_dcache_area(addr, length);
+	__cpuc_flush_dcache_area(addr, length);
 
 	start = virt_to_phys(addr);
 	end   = start + length;
@@ -175,7 +175,7 @@ void THINVPP_BCMBUF_HardwareTrans(BCMBUF *pbcmbuf, int block)
     /* flush data in D$ */
     FLUSH_DCACHE_RANGE(start, size);
     start = (void*)virt_to_phys(start);
-    printk("virt_to_phys(start): %p\n", start);
+    printk("virt_to_phys(start): %p, size: %d\n", start, size);
 
     /* start BCM engine */
     dhubID = avioDhubChMap_vpp_BCM_R;

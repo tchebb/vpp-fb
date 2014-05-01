@@ -109,10 +109,8 @@ void VPP_dhub_sem_clear(void)
  *         MV_THINVPP_EUNCONFIG - not initialized
  ***********************************************/
 
-#define NUM_DMA_BUFS	2
 int MV_THINVPP_Create(int base_addr, logo_device_t *fastlogo_ctx)
 {
-    int i;
     if (!(thinvpp_obj = (THINVPP_OBJ *)THINVPP_MALLOC(sizeof(THINVPP_OBJ)))){
         return (MV_THINVPP_ENOMEM);
     }
@@ -122,31 +120,27 @@ int MV_THINVPP_Create(int base_addr, logo_device_t *fastlogo_ctx)
     thinvpp_obj->fastlogo_ctx = fastlogo_ctx;
     thinvpp_obj->base_addr = base_addr;
 
-    for(i = 0; i < NUM_DMA_BUFS; i++) {
-        if (THINVPP_BCMBUF_Create(&(thinvpp_obj->vbi_bcm_buf[i]), BCM_BUFFER_SIZE) != MV_THINVPP_OK)
-            goto nomem_exit;
+    if (THINVPP_BCMBUF_Create(&(thinvpp_obj->vbi_bcm_buf), BCM_BUFFER_SIZE) != MV_THINVPP_OK)
+        goto nomem_exit;
 
-        if (THINVPP_CFGQ_Create(&(thinvpp_obj->dv[CPCB_1].vbi_dma_cfgQ[i]), DMA_CMD_BUFFER_SIZE) != MV_THINVPP_OK)
-            goto nomem_exit;
+    if (THINVPP_CFGQ_Create(&(thinvpp_obj->dv[CPCB_1].vbi_dma_cfgQ), DMA_CMD_BUFFER_SIZE) != MV_THINVPP_OK)
+        goto nomem_exit;
 
-        if (THINVPP_CFGQ_Create(&(thinvpp_obj->dv[CPCB_1].vbi_bcm_cfgQ[i]), DMA_CMD_BUFFER_SIZE) != MV_THINVPP_OK)
-            goto nomem_exit;
-    }
+    if (THINVPP_CFGQ_Create(&(thinvpp_obj->dv[CPCB_1].vbi_bcm_cfgQ), DMA_CMD_BUFFER_SIZE) != MV_THINVPP_OK)
+        goto nomem_exit;
 
     return (MV_THINVPP_OK);
 
 nomem_exit:
 
-    for(i = 0; i < NUM_DMA_BUFS; i++) {
-        if (thinvpp_obj->vbi_bcm_buf[i].addr != 0)
-            THINVPP_BCMBUF_Destroy(&(thinvpp_obj->vbi_bcm_buf[i]));
+    if (thinvpp_obj->vbi_bcm_buf.addr != 0)
+        THINVPP_BCMBUF_Destroy(&(thinvpp_obj->vbi_bcm_buf));
 
-    	if (thinvpp_obj->dv[CPCB_1].vbi_dma_cfgQ[i].addr != 0)
-            THINVPP_CFGQ_Destroy(&(thinvpp_obj->dv[CPCB_1].vbi_dma_cfgQ[i]));
+    if (thinvpp_obj->dv[CPCB_1].vbi_dma_cfgQ.addr != 0)
+        THINVPP_CFGQ_Destroy(&(thinvpp_obj->dv[CPCB_1].vbi_dma_cfgQ));
 
-        if (thinvpp_obj->dv[CPCB_1].vbi_bcm_cfgQ[i].addr != 0)
-            THINVPP_CFGQ_Destroy(&(thinvpp_obj->dv[CPCB_1].vbi_bcm_cfgQ[i]));
-    }
+    if (thinvpp_obj->dv[CPCB_1].vbi_bcm_cfgQ.addr != 0)
+        THINVPP_CFGQ_Destroy(&(thinvpp_obj->dv[CPCB_1].vbi_bcm_cfgQ));
 
     THINVPP_FREE(thinvpp_obj);
 
@@ -163,17 +157,13 @@ nomem_exit:
  ***********************************************/
 int MV_THINVPP_Destroy(void)
 {
-    int i = 0;
-
     if (thinvpp_obj == NULL)
         return (MV_THINVPP_ENODEV);
 
     /* free BCM buffer memory */
-    for(; i < NUM_DMA_BUFS; i++) {
-        THINVPP_BCMBUF_Destroy(&(thinvpp_obj->vbi_bcm_buf[i]));
-        THINVPP_CFGQ_Destroy(&(thinvpp_obj->dv[CPCB_1].vbi_dma_cfgQ[i]));
-        THINVPP_CFGQ_Destroy(&(thinvpp_obj->dv[CPCB_1].vbi_bcm_cfgQ[i]));
-    }
+    THINVPP_BCMBUF_Destroy(&(thinvpp_obj->vbi_bcm_buf));
+    THINVPP_CFGQ_Destroy(&(thinvpp_obj->dv[CPCB_1].vbi_dma_cfgQ));
+    THINVPP_CFGQ_Destroy(&(thinvpp_obj->dv[CPCB_1].vbi_bcm_cfgQ));
 
     /* free vpp object memory */
     THINVPP_FREE(thinvpp_obj);
@@ -240,14 +230,10 @@ int MV_THINVPP_Reset(void)
     }
 
     /* reset VBI BCM buffer */
-    THINVPP_BCMBUF_Reset(&thinvpp_obj->vbi_bcm_buf[0]);
-    THINVPP_BCMBUF_Reset(&thinvpp_obj->vbi_bcm_buf[1]);
+    THINVPP_BCMBUF_Reset(&thinvpp_obj->vbi_bcm_buf);
 
-    thinvpp_obj->pVbiBcmBuf = &(thinvpp_obj->vbi_bcm_buf[0]);
-    thinvpp_obj->pVbiBcmBufCpcb[CPCB_1] = &(thinvpp_obj->vbi_bcm_buf[0]);
-
-    thinvpp_obj->dv[CPCB_1].curr_cpcb_vbi_dma_cfgQ = &(thinvpp_obj->dv[CPCB_1].vbi_dma_cfgQ[0]);
-    thinvpp_obj->dv[CPCB_1].curr_cpcb_vbi_bcm_cfgQ = &(thinvpp_obj->dv[CPCB_1].vbi_bcm_cfgQ[0]);
+    thinvpp_obj->pVbiBcmBuf = &(thinvpp_obj->vbi_bcm_buf);
+    thinvpp_obj->pVbiBcmBufCpcb[CPCB_1] = &(thinvpp_obj->vbi_bcm_buf);
 
 
     /* reset dHub cmdQ */
