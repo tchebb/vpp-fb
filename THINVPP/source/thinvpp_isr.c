@@ -68,16 +68,24 @@ static int startChannelDataLoader(THINVPP_OBJ *vpp_obj, int chanID)
 {
     int cpcbID;
     CHAN *chan;
+    int ppb = (chanID == CHAN_MAIN) ? PIXEL_PER_BEAT_YUV_422 : PIXEL_PER_BEAT_ARGB_8888;
 
     cpcbID = CPCB_OF_CHAN(vpp_obj, chanID);
     chan = &vpp_obj->chan[chanID];
 
-    if (chanID == CHAN_MAIN) { /* none AUX channel */
+    if (chanID == CHAN_MAIN || chanID == CHAN_GFX0) { /* none AUX channel */
         VBUF_INFO * pinfo;
         unsigned active_left, active_width, frame_addr;
         unsigned dlr_id = VPP_FE_DLR_CHANNEL_MAIN;
         unsigned scl_id = VPP_FRC_SCL_MAIN;
         PLANE *plane = &vpp_obj->plane[PLANE_MAIN];
+
+	if(chanID == CHAN_GFX0) {
+		dlr_id = VPP_FE_DLR_CHANNEL_IG;
+		scl_id = VPP_FRC_SCL_OSD;
+		plane = &vpp_obj->plane[PLANE_GFX0];
+	}
+
         VPP_FE_DLR_PLANE_DATA_FMT plane_fmt;
         VPP_SCL_CTRL scl_ctrl;
         VPP_FRC_RES frc_res;
@@ -105,14 +113,19 @@ static int startChannelDataLoader(THINVPP_OBJ *vpp_obj, int chanID)
 
             THINVPP_CPCB_SetPlaneAttribute(vpp_obj, cpcbID, chan->dvlayerID, chan->disp_win_attr.alpha, chan->disp_win_attr.bgcolor);
 
-            plane_fmt.SrcFmt = SRCFMT_YUV422;
-            plane_fmt.FmtOrder = ORDER_YUYV;
+            if(chanID == CHAN_MAIN) {
+                plane_fmt.SrcFmt = SRCFMT_YUV422;
+                plane_fmt.FmtOrder = ORDER_YUYV;
+            } else {
+                plane_fmt.SrcFmt = SRCFMT_ARGB32;
+                plane_fmt.FmtOrder = ORDER_ARGB;
+            }
             FE_DLR_SetPlaneDataFmt(vpp_obj, dlr_id, &plane_fmt);
 
             FRC_SCL_ChopCtrl(vpp_obj, scl_id, 0);
 
             /*calculate crop WPL*/
-            CropWpl = (((plane->actv_win.width + PIXEL_PER_BEAT_YUV_422 - 1) / PIXEL_PER_BEAT_YUV_422) << 16);
+            CropWpl = (((plane->actv_win.width + ppb - 1) / ppb) << 16);
             plane->wpl = CropWpl >> 16;
 
             res.HRes = plane->actv_win.width;
@@ -190,7 +203,7 @@ static int startChannelDataLoader(THINVPP_OBJ *vpp_obj, int chanID)
                 plane->actv_win.width  = active_width;
                 plane->actv_win.height = pinfo->m_active_height;
 
-                CropWpl = (((plane->actv_win.width + PIXEL_PER_BEAT_YUV_422 - 1) / PIXEL_PER_BEAT_YUV_422) << 16);
+                CropWpl = (((plane->actv_win.width + ppb - 1) / ppb) << 16);
                 plane->wpl = CropWpl >> 16;
                 res.HRes = plane->actv_win.width;
                 res.VRes = plane->actv_win.height;

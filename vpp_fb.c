@@ -245,7 +245,7 @@ static int vpp_fb_set_par(struct fb_info *info)
 
 	// initialize buffer
 	// TODO: YUV/RGB?
-	memset(par->vppfb_ctx.fbBuf, 0, par->vppfb_ctx.length);
+	memset(par->vppfb_ctx.fbBuf, 0x55, par->vppfb_ctx.length);
 	info->screen_base = (char *)par->vppfb_ctx.fbBuf;
 	info->fix.smem_start = (unsigned int)par->vppfb_ctx.mapaddr;
 	info->fix.smem_len = par->vppfb_ctx.length;
@@ -269,7 +269,7 @@ static int vpp_fb_set_par(struct fb_info *info)
 	par->vppfb_ctx.win.width = info->var.xres;
 	par->vppfb_ctx.win.height = info->var.yres;
 	MV_THINVPP_SetMainDisplayFrame(&vbuf);
-	MV_THINVPP_OpenDispWindow(PLANE_MAIN, &par->vppfb_ctx.win, NULL);
+	MV_THINVPP_OpenDispWindow(PLANE_GFX0, &par->vppfb_ctx.win, NULL);
 
 	/* register ISR */
 	err = request_irq(IRQ_DHUBINTRAVIO0, vppfb_devices_vpp_isr, IRQF_DISABLED, "vppfb_module_vpp", info);

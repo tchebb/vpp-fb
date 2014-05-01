@@ -316,8 +316,13 @@ int MV_THINVPP_Config(void)
     thinvpp_obj->chan[CHAN_AUX].zorder = CPCB_ZORDER_1;
     thinvpp_obj->chan[CHAN_AUX].dvlayerID = CPCB1_PLANE_1; // PLANE-1 of CPCB-2
 
+    thinvpp_obj->chan[CHAN_GFX0].dvID = CPCB_1;
+    thinvpp_obj->chan[CHAN_GFX0].zorder = CPCB_ZORDER_3;
+    thinvpp_obj->chan[CHAN_GFX0].dvlayerID = CPCB1_PLANE_1;
+
     thinvpp_obj->dv[CPCB_1].num_of_chans = 1;
-    thinvpp_obj->dv[CPCB_1].chanID[0] = CHAN_MAIN;
+//    thinvpp_obj->dv[CPCB_1].chanID[0] = CHAN_MAIN;
+    thinvpp_obj->dv[CPCB_1].chanID[0] = CHAN_GFX0;
 
     thinvpp_obj->dv[CPCB_1].num_of_vouts = 1;
     thinvpp_obj->dv[CPCB_1].voutID[0] = VOUT_HDMI;

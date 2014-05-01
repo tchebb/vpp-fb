@@ -189,6 +189,64 @@ int FRC_SCL_LoadDefaultVal(THINVPP_OBJ *vpp_obj, int UnitNum)
             WRITE_FRC_SCL_DEFAULT_VAL_32BITS(RA_Vpp_main_ols, gFrcSclNewDefValues);
             break;
 #endif
+        case VPP_FRC_SCL_OSD:
+            WRITE_FRC_SCL_DEFAULT_VAL(UnitNum, FRC_CTRL0, gFrcScl0DefValues);
+            WRITE_FRC_SCL_DEFAULT_VAL(UnitNum, FRC_DLY_FRST_DE, gFrcScl0DefValues);
+            WRITE_FRC_SCL_DEFAULT_VAL(UnitNum, FRC_DLY_DE_LRST, gFrcScl0DefValues);
+            WRITE_FRC_SCL_DEFAULT_VAL(UnitNum, FRC_DLY_LRST_DE, gFrcScl0DefValues);
+            WRITE_FRC_SCL_DEFAULT_VAL(UnitNum, FRC_BEHRES_L, gFrcScl0DefValues);
+            WRITE_FRC_SCL_DEFAULT_VAL(UnitNum, FRC_BEHRES_H, gFrcScl0DefValues);
+            WRITE_FRC_SCL_DEFAULT_VAL(UnitNum, FRC_BEVRES_L, gFrcScl0DefValues);
+            WRITE_FRC_SCL_DEFAULT_VAL(UnitNum, FRC_BEVRES_H, gFrcScl0DefValues);
+            WRITE_FRC_SCL_DEFAULT_VAL(UnitNum, FRC_FEVRES_L, gFrcScl0DefValues);
+            WRITE_FRC_SCL_DEFAULT_VAL(UnitNum, FRC_FEVRES_H, gFrcScl0DefValues);
+            WRITE_FRC_SCL_DEFAULT_VAL(UnitNum, FRC_SCLCLK_CTRL, gFrcScl0DefValues);
+#if (BERLIN_CHIP_VERSION >= BERLIN_B_0)
+            WRITE_FRC_SCL_DEFAULT_VAL(UnitNum, FRC_SCLCLK_CTRL1, gFrcScl0DefValues);
+#endif
+            WRITE_FRC_SCL_DEFAULT_VAL(UnitNum, SCL_IVRES_0, gFrcScl0DefValues);
+            WRITE_FRC_SCL_DEFAULT_VAL(UnitNum, SCL_IVRES_1, gFrcScl0DefValues);
+            WRITE_FRC_SCL_DEFAULT_VAL(UnitNum, SCL_IHRES_0, gFrcScl0DefValues);
+            WRITE_FRC_SCL_DEFAULT_VAL(UnitNum, SCL_IHRES_1, gFrcScl0DefValues);
+            WRITE_FRC_SCL_DEFAULT_VAL(UnitNum, SCL_OVRES_0, gFrcScl0DefValues);
+            WRITE_FRC_SCL_DEFAULT_VAL(UnitNum, SCL_OVRES_1, gFrcScl0DefValues);
+            WRITE_FRC_SCL_DEFAULT_VAL(UnitNum, SCL_OHRES_0, gFrcScl0DefValues);
+            WRITE_FRC_SCL_DEFAULT_VAL(UnitNum, SCL_OHRES_1, gFrcScl0DefValues);
+            WRITE_FRC_SCL_DEFAULT_VAL(UnitNum, SCL_MEMSIZE_0, gFrcScl0DefValues);
+            WRITE_FRC_SCL_DEFAULT_VAL(UnitNum, SCL_MEMSIZE_1, gFrcScl0DefValues);
+            WRITE_FRC_SCL_DEFAULT_VAL(UnitNum, SCL_VRATIO_0, gFrcScl0DefValues);
+            WRITE_FRC_SCL_DEFAULT_VAL(UnitNum, SCL_VRATIO_1, gFrcScl0DefValues);
+            WRITE_FRC_SCL_DEFAULT_VAL(UnitNum, SCL_VRATIO_2, gFrcScl0DefValues);
+            WRITE_FRC_SCL_DEFAULT_VAL(UnitNum, SCL_HRATIO_0, gFrcScl0DefValues);
+            WRITE_FRC_SCL_DEFAULT_VAL(UnitNum, SCL_HRATIO_1, gFrcScl0DefValues);
+            WRITE_FRC_SCL_DEFAULT_VAL(UnitNum, SCL_HRATIO_2, gFrcScl0DefValues);
+            WRITE_FRC_SCL_DEFAULT_VAL(UnitNum, SCL_VWRAP_0, gFrcScl0DefValues);
+            WRITE_FRC_SCL_DEFAULT_VAL(UnitNum, SCL_VWRAP_1, gFrcScl0DefValues);
+            WRITE_FRC_SCL_DEFAULT_VAL(UnitNum, SCL_VINITPH_EVEN, gFrcScl0DefValues);
+            WRITE_FRC_SCL_DEFAULT_VAL(UnitNum, SCL_VINITPH_ODD, gFrcScl0DefValues);
+            WRITE_FRC_SCL_DEFAULT_VAL(UnitNum, SCL_HINITPH, gFrcScl0DefValues);
+            WRITE_FRC_SCL_DEFAULT_VAL(UnitNum, SCL_VCTRL_0, gFrcScl0DefValues);
+            WRITE_FRC_SCL_DEFAULT_VAL(UnitNum, SCL_HCTRL_0, gFrcScl0DefValues);
+            WRITE_FRC_SCL_DEFAULT_VAL(UnitNum, SCL_CTRL_0, gFrcScl0DefValues);
+            WRITE_FRC_SCL_DEFAULT_VAL(UnitNum, SCL_NUMTAPS, gFrcScl0DefValues);
+            WRITE_FRC_SCL_DEFAULT_VAL(UnitNum, SCL_HTAP_OFFSET, gFrcScl0DefValues);
+            WRITE_FRC_SCL_DEFAULT_VAL(UnitNum, SCL_VTAP_OFFSET, gFrcScl0DefValues);
+            WRITE_FRC_SCL_DEFAULT_VAL(UnitNum, SCL_STALL, gFrcScl0DefValues);
+            WRITE_FRC_SCL_DEFAULT_VAL(UnitNum, SCL_INIT_RATIO_0, gFrcScl0DefValues);
+            WRITE_FRC_SCL_DEFAULT_VAL(UnitNum, SCL_INIT_RATIO_1, gFrcScl0DefValues);
+            WRITE_FRC_SCL_DEFAULT_VAL(UnitNum, SCL_INIT_RATIO_2, gFrcScl0DefValues);
+            WRITE_FRC_SCL_DEFAULT_VAL(UnitNum, SCL_INC_RATIO_0, gFrcScl0DefValues);
+            WRITE_FRC_SCL_DEFAULT_VAL(UnitNum, SCL_INC_RATIO_1, gFrcScl0DefValues);
+            WRITE_FRC_SCL_DEFAULT_VAL(UnitNum, SCL_INC_RATIO_2, gFrcScl0DefValues);
+            WRITE_FRC_SCL_DEFAULT_VAL(UnitNum, SCL_NLCRES_0, gFrcScl0DefValues);
+            WRITE_FRC_SCL_DEFAULT_VAL(UnitNum, SCL_NLCRES_1, gFrcScl0DefValues);
+
+            WRITE_FRC_SCL_DEFAULT_VAL(UnitNum, SCL_MEMCTRL, gFrcScl0DefValues);
+            WRITE_FRC_SCL_DEFAULT_VAL(UnitNum, SCL_ALPH_CTRL, gFrcScl0DefValues);
+
+            WRITE_FRC_SCL_DEFAULT_VAL_32BITS(RA_Vpp_OSD_LSIZE, gFrcSclNewDefValues);
+            WRITE_FRC_SCL_DEFAULT_VAL_32BITS(RA_Vpp_osd_pix, gFrcSclNewDefValues);
+	    break;
 #if VPPFB_ENABLE_PIP
         case VPP_FRC_SCL_PIP:
             WRITE_FRC_SCL_DEFAULT_VAL(UnitNum, FRC_CTRL0, gFrcScl1DefValues);
