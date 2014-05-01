@@ -103,8 +103,6 @@ int THINVPP_BCMBUF_Reset(BCMBUF *pbcmbuf)
 
     /*set pointers to the head*/
     pbcmbuf->writer = pbcmbuf->head;
-    pbcmbuf->dv1_head = pbcmbuf->head;
-    //pbcmbuf->dv3_head = pbcmbuf->dv1_head + (pbcmbuf->size/16)*3;
     pbcmbuf->subID = -1; /* total */
 
     return MV_THINVPP_OK;
@@ -118,14 +116,7 @@ int THINVPP_BCMBUF_Reset(BCMBUF *pbcmbuf)
 void THINVPP_BCMBUF_Select(BCMBUF *pbcmbuf, int subID)
 {
     /* reset read/write pointer of the buffer */
-    if (subID == CPCB_1){
-        pbcmbuf->writer = pbcmbuf->dv1_head;
-    //} else if (subID == CPCB_3) {
-        //pbcmbuf->writer = pbcmbuf->dv3_head;
-    //} else {
-        //pbcmbuf->writer = pbcmbuf->head;
-    }
-
+    pbcmbuf->writer = pbcmbuf->head;
     pbcmbuf->subID = subID;
 
     return;
@@ -148,6 +139,7 @@ int THINVPP_BCMBUF_Write(BCMBUF *pbcmbuf, unsigned int address, unsigned int val
 
     if(pbcmbuf->writer == end){
         /*the buffer is full, no space for wrap around*/
+	printk("BCMBUF_Write full!!!\n");
         return MV_THINVPP_EBCMBUFFULL;
     }
 
@@ -174,11 +166,7 @@ void THINVPP_BCMBUF_HardwareTrans(BCMBUF *pbcmbuf, int block)
     int status;
     int size;
 
-    if (pbcmbuf->subID == CPCB_1)
-        start = pbcmbuf->dv1_head;
-    else
-        start = pbcmbuf->head;
-
+    start = pbcmbuf->head;
     size = (int)pbcmbuf->writer-(int)start;
 
     if (size <= 0)
@@ -315,14 +303,7 @@ int THINVPP_BCMBUF_To_CFGQ(BCMBUF *pbcmbuf, DHUB_CFGQ *cfgQ)
     unsigned int bcm_sched_cmd[2];
     unsigned int *start;
 
-#if LOGO_USE_SHM
-    start = pbcmbuf->dv1_head;
-#else
-    if (pbcmbuf->subID == CPCB_1)
-        start = pbcmbuf->dv1_head;
-    else
-        start = pbcmbuf->head;
-#endif
+    start = pbcmbuf->head;
 
     size = (uintptr_t)pbcmbuf->writer - (uintptr_t)start;
 

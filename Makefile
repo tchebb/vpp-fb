@@ -17,10 +17,6 @@ HEADER_PATH :=  \
 
 ccflags-y	+= -DLOGO_ENABLE_MAIN=1 -DLOGO_ENABLE_PIP=0 -DLOGO_ENABLE_AUX=0
 #ccflags-y	+= -DLOGO_PROC_FS=1 -DLOGO_TIME_PROFILE=1
-#ifeq ($(CONFIG_BERLIN_SHM),y)
-#ccflags-y	+= -DLOGO_USE_SHM=1
-#endif
-ccflags-y	+= -DLOGO_USE_SHM=0
 ccflags-y	+= $(MV_DEFINE) $(HEADER_PATH)
 
 ccflags-y	+= -I$(PWD)/THINVPP/source/include/include_BG2_A0

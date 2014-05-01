@@ -232,7 +232,6 @@ static void toggleQ(THINVPP_OBJ *vpp_obj, int cpcbID)
     THINVPP_BCMBUF_To_CFGQ(vpp_obj->pVbiBcmBuf, vpp_obj->dv[cpcbID].curr_cpcb_vbi_bcm_cfgQ);
     THINVPP_BCMDHUB_CFGQ_Commit(vpp_obj->dv[cpcbID].curr_cpcb_vbi_bcm_cfgQ, cpcbID);
 
-#if !LOGO_USE_SHM
     // do no need double buffers for dhub queues
     if (vpp_obj->pVbiBcmBufCpcb[cpcbID] == &vpp_obj->vbi_bcm_buf[0])
         vpp_obj->pVbiBcmBufCpcb[cpcbID] = &vpp_obj->vbi_bcm_buf[1];
@@ -248,7 +247,6 @@ static void toggleQ(THINVPP_OBJ *vpp_obj, int cpcbID)
         vpp_obj->dv[cpcbID].curr_cpcb_vbi_bcm_cfgQ = &(vpp_obj->dv[cpcbID].vbi_bcm_cfgQ[1]);
     else
         vpp_obj->dv[cpcbID].curr_cpcb_vbi_bcm_cfgQ = &(vpp_obj->dv[cpcbID].vbi_bcm_cfgQ[0]);
-#endif
 }
 
 static void prepareQ(THINVPP_OBJ *vpp_obj, int cpcbID)

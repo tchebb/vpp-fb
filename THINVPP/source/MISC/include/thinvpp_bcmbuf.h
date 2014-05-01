@@ -36,7 +36,6 @@ typedef struct DHUB_CFGQ_T {
 typedef struct BCMBUF_T {
     int addr;
     unsigned int *head;          // head of total BCM buffer
-    unsigned int *dv1_head;      // head of BCM sub-buffer used for CPCB0
     unsigned int *tail;          // tail of the buffer, used for checking wrap around
     unsigned int *writer;        // write pointer of queue, update with shadow_tail with commit
     int size;                    // size of total BCM buffer
