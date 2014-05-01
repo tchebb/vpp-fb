@@ -263,7 +263,7 @@ void THINVPP_CPCB_ISR_service(THINVPP_OBJ *vpp_obj, int cpcbID)
     case STATUS_ACTIVE:
         /*when change cpcb output resolution, status was set to inactive, Dhub should be stopped at this moment*/
 
-	/* stop fast-logo */
+	/* stop vpp-fb */
 	if(stop_flag == 1)
 	{
 		pDV->status = STATUS_STOP;

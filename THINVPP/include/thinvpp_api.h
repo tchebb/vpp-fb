@@ -1897,14 +1897,14 @@ typedef struct
 {
     unsigned planes;
     VPP_WIN win;
-    unsigned *logoBuf;
+    unsigned *fbBuf;
     unsigned *mapaddr;
     long length;
     unsigned count;
 
-    unsigned *logo_frame_dma_cmd;
+    unsigned *fb_frame_dma_cmd;
 
-} logo_device_t;
+} fb_device_t;
 
 /************* VPP module external APIs *****************/
 
@@ -1917,7 +1917,7 @@ typedef struct
  *         MV_THINVPP_ENODEV - no device
  *         MV_THINVPP_ENOMEM - no memory
  ***********************************************/
-int MV_THINVPP_Create(int base_addr, logo_device_t *fastlogo_ctx);
+int MV_THINVPP_Create(int base_addr, fb_device_t *vppfb_ctx);
 
 /***********************************************
  * FUNCTION: destroy a VPP object

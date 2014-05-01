@@ -109,7 +109,7 @@ void VPP_dhub_sem_clear(void)
  *         MV_THINVPP_EUNCONFIG - not initialized
  ***********************************************/
 
-int MV_THINVPP_Create(int base_addr, logo_device_t *fastlogo_ctx)
+int MV_THINVPP_Create(int base_addr, fb_device_t *vppfb_ctx)
 {
     if (!(thinvpp_obj = (THINVPP_OBJ *)THINVPP_MALLOC(sizeof(THINVPP_OBJ)))){
         return (MV_THINVPP_ENOMEM);
@@ -117,7 +117,7 @@ int MV_THINVPP_Create(int base_addr, logo_device_t *fastlogo_ctx)
 
     THINVPP_MEMSET(thinvpp_obj, 0, sizeof(THINVPP_OBJ));
 
-    thinvpp_obj->fastlogo_ctx = fastlogo_ctx;
+    thinvpp_obj->vppfb_ctx = vppfb_ctx;
     thinvpp_obj->base_addr = base_addr;
 
     if (THINVPP_BCMBUF_Create(&(thinvpp_obj->vbi_bcm_buf), BCM_BUFFER_SIZE) != MV_THINVPP_OK)
@@ -574,7 +574,6 @@ int MV_THINVPP_CloseDispWindow(void)
 }
 
 extern int cpcb_isr_count;
-extern int curr_logo_tp_count;
 
 int MV_THINVPP_Stop(void)
 {

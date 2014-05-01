@@ -28,7 +28,7 @@
 #include <linux/platform_device.h>
 #include <linux/fb.h>
 #include <linux/videodev2.h>
-#include <asm/cacheflush.h> // for __cpuc_flush_dcache_area(logoBuf, length);
+#include <asm/cacheflush.h> // for __cpuc_flush_dcache_area(fbBuf, length);
 #include <asm/outercache.h>
 #include <asm/page.h>
 #include <asm/io.h>
@@ -51,7 +51,7 @@
 
 #define bTST(x, b) (((x) >> (b)) & 1)
 
-#define FASTLOGO_DEVICE_TAG                       "[Galois][fbdev_driver] "
+#define VPPFB_DEVICE_TAG                       "[Galois][fbdev_driver] "
 
 void VPP_dhub_sem_clear(void);
 
@@ -60,27 +60,27 @@ void VPP_dhub_sem_clear(void);
   */
 
 #ifdef ENABLE_DEBUG
-#define gs_debug(...)   printk(KERN_DEBUG FASTLOGO_DEVICE_TAG __VA_ARGS__)
+#define gs_debug(...)   printk(KERN_DEBUG VPPFB_DEVICE_TAG __VA_ARGS__)
 #else
 #define gs_debug(...)
 #endif
 
-#define gs_info(...)    printk(KERN_INFO FASTLOGO_DEVICE_TAG __VA_ARGS__)
-#define gs_notice(...)  printk(KERN_NOTICE FASTLOGO_DEVICE_TAG __VA_ARGS__)
+#define gs_info(...)    printk(KERN_INFO VPPFB_DEVICE_TAG __VA_ARGS__)
+#define gs_notice(...)  printk(KERN_NOTICE VPPFB_DEVICE_TAG __VA_ARGS__)
 
-#define gs_trace(...)   printk(KERN_WARNING FASTLOGO_DEVICE_TAG __VA_ARGS__)
-#define gs_error(...)   printk(KERN_ERR FASTLOGO_DEVICE_TAG __VA_ARGS__)
+#define gs_trace(...)   printk(KERN_WARNING VPPFB_DEVICE_TAG __VA_ARGS__)
+#define gs_error(...)   printk(KERN_ERR VPPFB_DEVICE_TAG __VA_ARGS__)
 
 /*******************************************************************************
   Module Variable
   */
 
 struct vpp_fb_par {
-	logo_device_t fastlogo_ctx;
+	fb_device_t vppfb_ctx;
 
 	u64 last_isr_time;
 	unsigned last_isr_interval;
-	volatile int logo_isr_count;
+	volatile int fb_isr_count;
 };
 
 static struct fb_fix_screeninfo vpp_fb_fix __devinitdata = {
@@ -103,7 +103,7 @@ static struct fb_var_screeninfo vpp_fb_var __devinitdata = {
 	.grayscale = V4L2_PIX_FMT_YUYV,
 };
 
-static irqreturn_t fastlogo_devices_vpp_isr(int irq, void *dev_id)
+static irqreturn_t vppfb_devices_vpp_isr(int irq, void *dev_id)
 {
 	struct fb_info *info = dev_id;
 	struct vpp_fb_par *par = info->par;
@@ -112,8 +112,8 @@ static irqreturn_t fastlogo_devices_vpp_isr(int irq, void *dev_id)
 	HDL_semaphore *pSemHandle;
 	u64 cpcb0_isr_time_current;
 
-	++par->fastlogo_ctx.count;
-	par->logo_isr_count++;
+	++par->vppfb_ctx.count;
+	par->fb_isr_count++;
 
 	cpcb0_isr_time_current = cpu_clock(smp_processor_id());
 	par->last_isr_interval = (unsigned) (cpcb0_isr_time_current - par->last_isr_time);
@@ -129,7 +129,7 @@ static irqreturn_t fastlogo_devices_vpp_isr(int irq, void *dev_id)
 		semaphore_pop(pSemHandle, avioDhubSemMap_vpp_vppCPCB0_intr, 1);
 		semaphore_clr_full(pSemHandle, avioDhubSemMap_vpp_vppCPCB0_intr);
 
-		if(par->logo_isr_count > 1)
+		if(par->fb_isr_count > 1)
 		{
 			THINVPP_CPCB_ISR_service(thinvpp_obj, CPCB_1);
 		}
@@ -138,7 +138,7 @@ static irqreturn_t fastlogo_devices_vpp_isr(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
-static void fastlogo_device_exit(struct fb_info *info)
+static void vppfb_device_exit(struct fb_info *info)
 {
 	struct vpp_fb_par *par = info->par;
 
@@ -149,11 +149,11 @@ static void fastlogo_device_exit(struct fb_info *info)
 	MV_THINVPP_Destroy();
 
 	// FIX ME! Wrong pointer for free!
-	if (par->fastlogo_ctx.logoBuf) {
-		dma_unmap_single(NULL, (dma_addr_t)par->fastlogo_ctx.mapaddr, par->fastlogo_ctx.length, DMA_TO_DEVICE);
+	if (par->vppfb_ctx.fbBuf) {
+		dma_unmap_single(NULL, (dma_addr_t)par->vppfb_ctx.mapaddr, par->vppfb_ctx.length, DMA_TO_DEVICE);
 		gs_trace("will free pBuf OK\n");
-		kfree(par->fastlogo_ctx.logoBuf);
-		par->fastlogo_ctx.logoBuf = NULL;
+		kfree(par->vppfb_ctx.fbBuf);
+		par->vppfb_ctx.fbBuf = NULL;
 	}
 
 	/* unregister VPP interrupt */
@@ -189,7 +189,7 @@ static int vpp_fb_set_par(struct fb_info *info)
 	if (!vres)
 	{
 		gs_trace("vpp_fb is not enabled in bootloader\n");
-		return -EINVAL; // do nothing if fastlogo is not enabled in bootloader
+		return -EINVAL; // do nothing if vppfb is not enabled in bootloader
 	}
 	if (vres != 524)
 	{
@@ -206,7 +206,7 @@ static int vpp_fb_set_par(struct fb_info *info)
 
 	/* create PE device */
 
-	/* set up logo frame */
+	/* set up fb frame */
 	vbuf.alpha   = 255;
 	vbuf.bgcolor = 0x00800080;
 	vbuf.m_disp_offset   = 0;
@@ -218,43 +218,43 @@ static int vpp_fb_set_par(struct fb_info *info)
 
 	info->fix.line_length = vbuf.m_buf_stride;
 
-	par->fastlogo_ctx.length = vbuf.m_buf_stride * vbuf.m_active_height;
-	alloc_length = par->fastlogo_ctx.length + PAGE_SIZE;
+	par->vppfb_ctx.length = vbuf.m_buf_stride * vbuf.m_active_height;
+	alloc_length = par->vppfb_ctx.length + PAGE_SIZE;
 	unalig_buf = kmalloc(alloc_length, GFP_KERNEL | GFP_DMA);
-	par->fastlogo_ctx.logoBuf = (void*)ALIGN((uintptr_t)unalig_buf, PAGE_SIZE);
+	par->vppfb_ctx.fbBuf = (void*)ALIGN((uintptr_t)unalig_buf, PAGE_SIZE);
 
-	printk("fastlogo_ctx.logoBuf: %p\n", par->fastlogo_ctx.logoBuf);
-	if (!par->fastlogo_ctx.logoBuf) {
+	printk("vppfb_ctx.fbBuf: %p\n", par->vppfb_ctx.fbBuf);
+	if (!par->vppfb_ctx.fbBuf) {
 		gs_trace("kmalloc error\n");
 		return err;
 	}
 
-	par->fastlogo_ctx.mapaddr = (unsigned int *)dma_map_single(NULL, par->fastlogo_ctx.logoBuf, par->fastlogo_ctx.length, DMA_TO_DEVICE);
-	err = dma_mapping_error(NULL, (dma_addr_t)par->fastlogo_ctx.logoBuf);
-	printk("fastlogo_ctx.mapaddr: %p\n", par->fastlogo_ctx.mapaddr);
+	par->vppfb_ctx.mapaddr = (unsigned int *)dma_map_single(NULL, par->vppfb_ctx.fbBuf, par->vppfb_ctx.length, DMA_TO_DEVICE);
+	err = dma_mapping_error(NULL, (dma_addr_t)par->vppfb_ctx.fbBuf);
+	printk("vppfb_ctx.mapaddr: %p\n", par->vppfb_ctx.mapaddr);
 	if (err) {
 		gs_trace("dma_mapping_error\n");
 		/* FIX ME, wrong pointer! */
-		kfree(par->fastlogo_ctx.logoBuf);
-		par->fastlogo_ctx.logoBuf = NULL;
+		kfree(par->vppfb_ctx.fbBuf);
+		par->vppfb_ctx.fbBuf = NULL;
 		return err;
 	}
 
-	outer_cache.flush_range(virt_to_phys(par->fastlogo_ctx.logoBuf), virt_to_phys(par->fastlogo_ctx.logoBuf)+par->fastlogo_ctx.length);
-	vbuf.m_pbuf_start = (void*)virt_to_phys(par->fastlogo_ctx.logoBuf);
+	outer_cache.flush_range(virt_to_phys(par->vppfb_ctx.fbBuf), virt_to_phys(par->vppfb_ctx.fbBuf)+par->vppfb_ctx.length);
+	vbuf.m_pbuf_start = (void*)virt_to_phys(par->vppfb_ctx.fbBuf);
 
 	// initialize buffer
 	// TODO: YUV/RGB?
-	memset(par->fastlogo_ctx.logoBuf, 0, par->fastlogo_ctx.length);
-	info->screen_base = (char *)par->fastlogo_ctx.logoBuf;
-	info->fix.smem_start = (unsigned int)par->fastlogo_ctx.mapaddr;
-	info->fix.smem_len = par->fastlogo_ctx.length;
+	memset(par->vppfb_ctx.fbBuf, 0, par->vppfb_ctx.length);
+	info->screen_base = (char *)par->vppfb_ctx.fbBuf;
+	info->fix.smem_start = (unsigned int)par->vppfb_ctx.mapaddr;
+	info->fix.smem_len = par->vppfb_ctx.length;
 
 	/* initialize dhub */
 	DhubInitialization(CPUINDEX, VPP_DHUB_BASE, VPP_HBO_SRAM_BASE, &VPP_dhubHandle, VPP_config, VPP_NUM_OF_CHANNELS);
 	DhubInitialization(CPUINDEX, AG_DHUB_BASE, AG_HBO_SRAM_BASE, &AG_dhubHandle, AG_config, AG_NUM_OF_CHANNELS);
 
-	MV_THINVPP_Create(MEMMAP_VPP_REG_BASE, &par->fastlogo_ctx);
+	MV_THINVPP_Create(MEMMAP_VPP_REG_BASE, &par->vppfb_ctx);
 	MV_THINVPP_Reset();
 	MV_THINVPP_Config();
 	AVPLL_Enable();
@@ -263,16 +263,16 @@ static int vpp_fb_set_par(struct fb_info *info)
 	MV_THINVPP_SetCPCBOutputResolution(CPCB_1, RES_720P5994, OUTPUT_BIT_DEPTH_8BIT);
 
 	// use MAIN plane
-	par->fastlogo_ctx.planes = 1;
-	par->fastlogo_ctx.win.x = 0;
-	par->fastlogo_ctx.win.y = 0;
-	par->fastlogo_ctx.win.width = info->var.xres;
-	par->fastlogo_ctx.win.height = info->var.yres;
+	par->vppfb_ctx.planes = 1;
+	par->vppfb_ctx.win.x = 0;
+	par->vppfb_ctx.win.y = 0;
+	par->vppfb_ctx.win.width = info->var.xres;
+	par->vppfb_ctx.win.height = info->var.yres;
 	MV_THINVPP_SetMainDisplayFrame(&vbuf);
-	MV_THINVPP_OpenDispWindow(PLANE_MAIN, &par->fastlogo_ctx.win, NULL);
+	MV_THINVPP_OpenDispWindow(PLANE_MAIN, &par->vppfb_ctx.win, NULL);
 
 	/* register ISR */
-	err = request_irq(IRQ_DHUBINTRAVIO0, fastlogo_devices_vpp_isr, IRQF_DISABLED, "fastlogo_module_vpp", info);
+	err = request_irq(IRQ_DHUBINTRAVIO0, vppfb_devices_vpp_isr, IRQF_DISABLED, "vppfb_module_vpp", info);
 	if (unlikely(err < 0)) {
 		gs_trace("vec_num:%5d, err:%8x\n", IRQ_DHUBINTRAVIO0, err);
 		return err;
@@ -410,7 +410,7 @@ static int __devexit vpp_fb_remove(struct platform_device *pdev)
 		fb_dealloc_cmap(&info->cmap);
 
 		if (MV_THINVPP_IsCPCBActive(CPCB_1))
-			fastlogo_device_exit(info);
+			vppfb_device_exit(info);
 
 		gs_trace("drv exit done\n");
 

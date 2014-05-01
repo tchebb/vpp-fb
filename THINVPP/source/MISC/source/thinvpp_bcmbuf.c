@@ -277,8 +277,8 @@ int THINVPP_BCMDHUB_CFGQ_Commit(DHUB_CFGQ *cfgQ, int cpcbID)
         BCM_SCHED_GetEmptySts(sched_qid, &sched_stat);
         if (sched_stat == 0)
         {
-            printk("****************[VPP fastlogo]ERROR! Q%d SCHED QUEUE OVERFLOW!!!!*************\n", sched_qid);
-            printk("[VPP fastlogo] BCM Q fulless status: %X\n", MV_MEMIO32_READ(MEMMAP_AVIO_BCM_REG_BASE+RA_AVIO_BCM_FULL_STS));
+            printk("****************[vpp_fb]ERROR! Q%d SCHED QUEUE OVERFLOW!!!!*************\n", sched_qid);
+            printk("[vpp_fb] BCM Q fulless status: %X\n", MV_MEMIO32_READ(MEMMAP_AVIO_BCM_REG_BASE+RA_AVIO_BCM_FULL_STS));
             return MV_THINVPP_EIOFAIL;
         }
     }
