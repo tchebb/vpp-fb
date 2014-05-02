@@ -308,9 +308,6 @@ int MV_THINVPP_Config(void)
     } // <- config FE planes
 
     /* config channels */
-    thinvpp_obj->chan[CHAN_MAIN].dvID = CPCB_1;
-    thinvpp_obj->chan[CHAN_MAIN].zorder = CPCB_ZORDER_2;
-    thinvpp_obj->chan[CHAN_MAIN].dvlayerID = CPCB1_PLANE_1;
 
     thinvpp_obj->chan[CHAN_AUX].dvID = CPCB_3;
     thinvpp_obj->chan[CHAN_AUX].zorder = CPCB_ZORDER_1;
@@ -318,7 +315,7 @@ int MV_THINVPP_Config(void)
 
     thinvpp_obj->chan[CHAN_GFX0].dvID = CPCB_1;
     thinvpp_obj->chan[CHAN_GFX0].zorder = CPCB_ZORDER_3;
-    thinvpp_obj->chan[CHAN_GFX0].dvlayerID = CPCB1_PLANE_1;
+    thinvpp_obj->chan[CHAN_GFX0].dvlayerID = CPCB1_PLANE_3;
 
     thinvpp_obj->dv[CPCB_1].num_of_chans = 1;
 //    thinvpp_obj->dv[CPCB_1].chanID[0] = CHAN_MAIN;
@@ -486,7 +483,7 @@ int MV_THINVPP_SetMainDisplayFrame(VBUF_INFO *pinfo)
     if (!pinfo)
         return (MV_THINVPP_EBADPARAM);
 
-    plane = &(thinvpp_obj->plane[PLANE_MAIN]);
+    plane = &(thinvpp_obj->plane[PLANE_GFX0]);
     plane->pinfo = pinfo;
 
     plane->actv_win.x = pinfo->m_active_left;
@@ -571,9 +568,9 @@ int MV_THINVPP_CloseDispWindow(void)
         return (MV_THINVPP_ENODEV);
 
     /* wait for CPCB TG reset done */
-    thinvpp_obj->plane[PLANE_MAIN].status = STATUS_STOP;
+    thinvpp_obj->plane[PLANE_GFX0].status = STATUS_STOP;
 
-    while(thinvpp_obj->plane[PLANE_MAIN].status != STATUS_INACTIVE);
+    while(thinvpp_obj->plane[PLANE_GFX0].status != STATUS_INACTIVE);
 
     return (MV_THINVPP_OK);
 }

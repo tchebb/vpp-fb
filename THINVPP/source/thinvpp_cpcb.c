@@ -257,6 +257,9 @@ int THINVPP_CPCB_SetPlaneSourceWindow(THINVPP_OBJ *vpp_obj, int cpcbID, int laye
                     CPCB_TG_SetPlaneWindow(vpp_obj, cpcbID, TG_PLANE2_PIP, &window);
                     CPCB_TG_SetPlaneWindow(vpp_obj, cpcbID, TG_PLANE2_PIP_CROP1, &window);
                     break;
+                case CPCB1_PLANE_3: /* CPCB plane 2 */
+		    CPCB_TG_SetPlaneWindow(vpp_obj, cpcbID, TG_PLANE3, &window);
+		    break;
             }
             break;
         case CPCB_3:

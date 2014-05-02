@@ -99,8 +99,23 @@ static struct fb_var_screeninfo vpp_fb_var __devinitdata = {
 	.yres = 720,
 	.xres_virtual = 1280,
 	.yres_virtual = 720,
-	.bits_per_pixel = 16,
-	.grayscale = V4L2_PIX_FMT_YUYV,
+	.bits_per_pixel = 32,
+	.red = {
+		.offset = 8,
+		.length = 8,
+	},
+	.green = {
+		.offset = 16,
+		.length = 8,
+	},
+	.blue = {
+		.offset = 24,
+		.length = 8,
+	},
+	.transp = {
+		.offset = 0,
+		.length = 8,
+	},
 };
 
 static irqreturn_t vppfb_devices_vpp_isr(int irq, void *dev_id)
