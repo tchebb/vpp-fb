@@ -285,7 +285,7 @@ void THINVPP_CPCB_ISR_service(THINVPP_OBJ *vpp_obj, int cpcbID)
 
 	prepareQ(vpp_obj, cpcbID);
 
-        startChannelDataLoader(vpp_obj, CHAN_MAIN);
+        startChannelDataLoader(vpp_obj, CHAN_GFX0);
 
 	THINVPP_CFGQ_To_CFGQ(&(vpp_obj->dv[CPCB_1].vbi_dma_cfgQ), &(vpp_obj->dv[CPCB_1].vbi_bcm_cfgQ));
         toggleQ(vpp_obj, cpcbID);
