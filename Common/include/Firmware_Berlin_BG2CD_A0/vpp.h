@@ -1,24 +1,22 @@
-/*******************************************************************************
-* Copyright (C) Marvell International Ltd. and its affiliates
-*
-* Marvell GPL License Option
-*
-* If you received this File from Marvell, you may opt to use, redistribute and/or
-* modify this File in accordance with the terms and conditions of the General
-* Public License Version 2, June 1991 (the GPL License), a copy of which is
-* available along with the File in the license.txt file or by writing to the Free
-* Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 or
-* on the worldwide web at http://www.gnu.org/licenses/gpl.txt.
-*
-* THE FILE IS DISTRIBUTED AS-IS, WITHOUT WARRANTY OF ANY KIND, AND THE IMPLIED
-* WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE ARE EXPRESSLY
-* DISCLAIMED.  The GPL License provides additional details about this warranty
-* disclaimer.
-********************************************************************************/
-
+/*
+ * Copyright Marvell Semiconductor, Inc. 2006. All rights reserved.
+ *
+ * Register address mapping configure file for rom testing code.
+ */
 
 #ifndef vpp_h
 #define vpp_h (){}
+#include "ctypes.h"
+#pragma pack(1)
+#ifndef _DOCC_H_BITOPS_
+#define _DOCC_H_BITOPS_ (){}
+    #define _bSETMASK_(b)                                      ((b)<32 ? (1<<((b)&31)) : 0)
+    #define _NSETMASK_(msb,lsb)                                (_bSETMASK_((msb)+1)-_bSETMASK_(lsb))
+    #define _bCLRMASK_(b)                                      (~_bSETMASK_(b))
+    #define _NCLRMASK_(msb,lsb)                                (~_NSETMASK_(msb,lsb))
+    #define _BFGET_(r,msb,lsb)                                 (_NSETMASK_((msb)-(lsb),0)&((r)>>(lsb)))
+    #define _BFSET_(r,msb,lsb,v)                               do{ (r)&=_NCLRMASK_(msb,lsb); (r)|=_NSETMASK_(msb,lsb)&((v)<<(lsb)); }while(0)
+#endif
 
     #define     RA_VPP_REG_dummy                               0x0000
     #define     RA_CLK_ctrl                                    0x0000
@@ -242,5 +240,186 @@
     #define     RA_Vpp_VIP_HDMIRX_CTRL2                        0x12D5C
     #define     RA_Vpp_DEINT_FLD_STS                           0x12D60
     #define     RA_Vpp_VIP_ctrl                                0x18000
+    #define     RA_Vpp_VP_CLKEN_CTRL                           0x1001C
+    #define     RA_Vpp_mainW                                   0x1003C
+    #define     RA_Vpp_vpIn_pix                                0x100EC
+    #define     RA_Vpp_vpOut_pix                               0x100F0
+    #define     RA_Vpp_diW_pix                                 0x10100
+    #define     RA_Vpp_diR_word                                0x10104
+    #define     RA_Vpp_mainW_pix                               0x10108
+    #define     RA_Vpp_mainR_word                              0x1010C
+    #define     RA_Vpp_pipW_pix                                0x10110
+    #define     RA_Vpp_pipR_word                               0x10114
+    #define     RA_Vpp_auxW_pix                                0x10118
+    #define     RA_Vpp_auxR_word                               0x1011C
+    #define     RA_Vpp_VP_TG                                   0x10130
+    #define     RA_Vpp_LDR                                     0x10400
+    #define     RA_Vpp_VP_DMX_CTRL                             0x12C04
+    #define     RA_Vpp_VP_DMX_HRES                             0x12C08
+    #define     RA_Vpp_VP_DMX_HT                               0x12C0C
+    #define     RA_Vpp_VP_DMX_VRES                             0x12C10
+    #define     RA_Vpp_VP_DMX_VT                               0x12C14
+    #define     RA_Vpp_VP_DMX_IVT                              0x12C18
+    #define     RA_Vpp_SCL_CLKEN_CTRL                          0x12C48
 
+    #define     BA_Vpp_MAIN_LSIZE_lsize                        0x100D8
+    #define     BA_Vpp_AUX_LSIZE_lsize                         0x100E8
+
+    #define     w32DAC_ctrl_ctrl0                              {\
+            UNSG32 uctrl0_gin                                  :  9;\
+            UNSG32 uctrl0_off_in_m                             :  8;\
+            UNSG32 uctrl0_off_in_p                             :  8;\
+            UNSG32 uctrl0_mode                                 :  2;\
+            UNSG32 RSVDx0_b27                                  :  5;\
+          }
+    typedef union  T32DAC_ctrl_ctrl0
+          { UNSG32 u32;
+            struct w32DAC_ctrl_ctrl0;
+                 } T32DAC_ctrl_ctrl0;
+    #define     w32DAC_ctrl_ctrl1                              {\
+            UNSG32 uctrl1_en_bline_cor                         :  1;\
+            UNSG32 uctrl1_en_cal                               :  1;\
+            UNSG32 uctrl1_en_cal_m                             :  1;\
+            UNSG32 uctrl1_en_cal_p                             :  1;\
+            UNSG32 uctrl1_en_cnt_up                            :  1;\
+            UNSG32 uctrl1_en_cnt_up_m                          :  1;\
+            UNSG32 uctrl1_en_cnt_up_p                          :  1;\
+            UNSG32 uctrl1_fast                                 :  1;\
+            UNSG32 uctrl1_pu                                   :  1;\
+            UNSG32 uctrl1_rst_cal                              :  1;\
+            UNSG32 uctrl1_rst_cal_m                            :  1;\
+            UNSG32 uctrl1_rst_cal_p                            :  1;\
+            UNSG32 uctrl1_slow                                 :  1;\
+            UNSG32 uctrl1_force_imp_ok                         :  1;\
+            UNSG32 uctrl1_force_pd_outp                        :  1;\
+            UNSG32 uctrl1_svideo_bline_ck                      :  1;\
+            UNSG32 RSVDx4_b16                                  : 16;\
+          }
+    typedef union  T32DAC_ctrl_ctrl1
+          { UNSG32 u32;
+            struct w32DAC_ctrl_ctrl1;
+                 } T32DAC_ctrl_ctrl1;
+
+    #define     w32VDAC_ctrl_misc1                             {\
+            UNSG32 umisc1_off_cvbs                             :  4;\
+            UNSG32 umisc1_off_others                           :  4;\
+            UNSG32 umisc1_pu_gdac                              :  1;\
+            UNSG32 RSVDx24_b9                                  : 23;\
+          }
+    typedef union  T32VDAC_ctrl_misc1
+          { UNSG32 u32;
+            struct w32VDAC_ctrl_misc1;
+                 } T32VDAC_ctrl_misc1;
+    #define     w32VDAC_ctrl_misc2                             {\
+            UNSG32 umisc2_rng_comp                             :  6;\
+            UNSG32 umisc2_rng_cvbs                             :  6;\
+            UNSG32 umisc2_rng_rgb                              :  6;\
+            UNSG32 umisc2_rng_svideo                           :  6;\
+            UNSG32 umisc2_rng_svideo75                         :  6;\
+            UNSG32 umisc2_ate                                  :  1;\
+            UNSG32 RSVDx28_b31                                 :  1;\
+          }
+    typedef union  T32VDAC_ctrl_misc2
+          { UNSG32 u32;
+            struct w32VDAC_ctrl_misc2;
+                 } T32VDAC_ctrl_misc2;
+
+    #define   GET32HDMI_ctrl_PD_IREF(r32)                      _BFGET_(r32, 0, 0)
+    #define   SET32HDMI_ctrl_PD_IREF(r32,v)                    _BFSET_(r32, 0, 0,v)
+    #define   GET16HDMI_ctrl_PD_IREF(r16)                      _BFGET_(r16, 0, 0)
+    #define   SET16HDMI_ctrl_PD_IREF(r16,v)                    _BFSET_(r16, 0, 0,v)
+    #define   GET32HDMI_ctrl_RESET_TX(r32)                     _BFGET_(r32, 1, 1)
+    #define   SET32HDMI_ctrl_RESET_TX(r32,v)                   _BFSET_(r32, 1, 1,v)
+    #define   GET16HDMI_ctrl_RESET_TX(r16)                     _BFGET_(r16, 1, 1)
+    #define   SET16HDMI_ctrl_RESET_TX(r16,v)                   _BFSET_(r16, 1, 1,v)
+    #define   GET32HDMI_ctrl_PD_TX(r32)                        _BFGET_(r32, 5, 2)
+    #define   SET32HDMI_ctrl_PD_TX(r32,v)                      _BFSET_(r32, 5, 2,v)
+    #define   GET16HDMI_ctrl_PD_TX(r16)                        _BFGET_(r16, 5, 2)
+    #define   SET16HDMI_ctrl_PD_TX(r16,v)                      _BFSET_(r16, 5, 2,v)
+    #define   GET32HDMI_ctrl_LOOPBACK(r32)                     _BFGET_(r32, 9, 6)
+    #define   SET32HDMI_ctrl_LOOPBACK(r32,v)                   _BFSET_(r32, 9, 6,v)
+    #define   GET16HDMI_ctrl_LOOPBACK(r16)                     _BFGET_(r16, 9, 6)
+    #define   SET16HDMI_ctrl_LOOPBACK(r16,v)                   _BFSET_(r16, 9, 6,v)
+    #define   GET32HDMI_ctrl_POLSWAP_TX(r32)                   _BFGET_(r32,13,10)
+    #define   SET32HDMI_ctrl_POLSWAP_TX(r32,v)                 _BFSET_(r32,13,10,v)
+    #define   GET16HDMI_ctrl_POLSWAP_TX(r16)                   _BFGET_(r16,13,10)
+    #define   SET16HDMI_ctrl_POLSWAP_TX(r16,v)                 _BFSET_(r16,13,10,v)
+    #define   GET32HDMI_ctrl_INV_CK20T(r32)                    _BFGET_(r32,17,14)
+    #define   SET32HDMI_ctrl_INV_CK20T(r32,v)                  _BFSET_(r32,17,14,v)
+    #define   GET32HDMI_ctrl_SYNC(r32)                         _BFGET_(r32,18,18)
+    #define   SET32HDMI_ctrl_SYNC(r32,v)                       _BFSET_(r32,18,18,v)
+    #define   GET16HDMI_ctrl_SYNC(r16)                         _BFGET_(r16, 2, 2)
+    #define   SET16HDMI_ctrl_SYNC(r16,v)                       _BFSET_(r16, 2, 2,v)
+    #define   GET32HDMI_ctrl_DAMP(r32)                         _BFGET_(r32,30,19)
+    #define   SET32HDMI_ctrl_DAMP(r32,v)                       _BFSET_(r32,30,19,v)
+    #define   GET16HDMI_ctrl_DAMP(r16)                         _BFGET_(r16,14, 3)
+    #define   SET16HDMI_ctrl_DAMP(r16,v)                       _BFSET_(r16,14, 3,v)
+    #define   GET32HDMI_ctrl_EAMP(r32)                         _BFGET_(r32,11, 0)
+    #define   SET32HDMI_ctrl_EAMP(r32,v)                       _BFSET_(r32,11, 0,v)
+    #define   GET16HDMI_ctrl_EAMP(r16)                         _BFGET_(r16,11, 0)
+    #define   SET16HDMI_ctrl_EAMP(r16,v)                       _BFSET_(r16,11, 0,v)
+    #define   GET32HDMI_ctrl_IDRV(r32)                         _BFGET_(r32,27,12)
+    #define   SET32HDMI_ctrl_IDRV(r32,v)                       _BFSET_(r32,27,12,v)
+    #define   GET32HDMI_ctrl_TXDRVX2(r32)                      _BFGET_(r32,31,28)
+    #define   SET32HDMI_ctrl_TXDRVX2(r32,v)                    _BFSET_(r32,31,28,v)
+    #define   GET16HDMI_ctrl_TXDRVX2(r16)                      _BFGET_(r16,15,12)
+    #define   SET16HDMI_ctrl_TXDRVX2(r16,v)                    _BFSET_(r16,15,12,v)
+    #define   GET32HDMI_ctrl_SVTX(r32)                         _BFGET_(r32,11, 0)
+    #define   SET32HDMI_ctrl_SVTX(r32,v)                       _BFSET_(r32,11, 0,v)
+    #define   GET16HDMI_ctrl_SVTX(r16)                         _BFGET_(r16,11, 0)
+    #define   SET16HDMI_ctrl_SVTX(r16,v)                       _BFSET_(r16,11, 0,v)
+    #define   GET32HDMI_ctrl_CP(r32)                           _BFGET_(r32,19,12)
+    #define   SET32HDMI_ctrl_CP(r32,v)                         _BFSET_(r32,19,12,v)
+    #define   GET32HDMI_ctrl_AJ_D(r32)                         _BFGET_(r32,23,20)
+    #define   SET32HDMI_ctrl_AJ_D(r32,v)                       _BFSET_(r32,23,20,v)
+    #define   GET16HDMI_ctrl_AJ_D(r16)                         _BFGET_(r16, 7, 4)
+    #define   SET16HDMI_ctrl_AJ_D(r16,v)                       _BFSET_(r16, 7, 4,v)
+    #define   GET32HDMI_ctrl_AJ_EN(r32)                        _BFGET_(r32,27,24)
+    #define   SET32HDMI_ctrl_AJ_EN(r32,v)                      _BFSET_(r32,27,24,v)
+    #define   GET16HDMI_ctrl_AJ_EN(r16)                        _BFGET_(r16,11, 8)
+    #define   SET16HDMI_ctrl_AJ_EN(r16,v)                      _BFSET_(r16,11, 8,v)
+    #define   GET32HDMI_ctrl_TP_EN(r32)                        _BFGET_(r32, 4, 0)
+    #define   SET32HDMI_ctrl_TP_EN(r32,v)                      _BFSET_(r32, 4, 0,v)
+    #define   GET16HDMI_ctrl_TP_EN(r16)                        _BFGET_(r16, 4, 0)
+    #define   SET16HDMI_ctrl_TP_EN(r16,v)                      _BFSET_(r16, 4, 0,v)
+    #define   GET32HDMI_ctrl_TPC(r32)                          _BFGET_(r32, 8, 5)
+    #define   SET32HDMI_ctrl_TPC(r32,v)                        _BFSET_(r32, 8, 5,v)
+    #define   GET16HDMI_ctrl_TPC(r16)                          _BFGET_(r16, 8, 5)
+    #define   SET16HDMI_ctrl_TPC(r16,v)                        _BFSET_(r16, 8, 5,v)
+    #define   GET32HDMI_ctrl_AUX(r32)                          _BFGET_(r32,16, 9)
+    #define   SET32HDMI_ctrl_AUX(r32,v)                        _BFSET_(r32,16, 9,v)
+    #define   GET32HDMI_ctrl_ARC_PU(r32)                       _BFGET_(r32,17,17)
+    #define   SET32HDMI_ctrl_ARC_PU(r32,v)                     _BFSET_(r32,17,17,v)
+    #define   GET16HDMI_ctrl_ARC_PU(r16)                       _BFGET_(r16, 1, 1)
+    #define   SET16HDMI_ctrl_ARC_PU(r16,v)                     _BFSET_(r16, 1, 1,v)
+    #define   GET32HDMI_ctrl_ARC_EN(r32)                       _BFGET_(r32,18,18)
+    #define   SET32HDMI_ctrl_ARC_EN(r32,v)                     _BFSET_(r32,18,18,v)
+    #define   GET16HDMI_ctrl_ARC_EN(r16)                       _BFGET_(r16, 2, 2)
+    #define   SET16HDMI_ctrl_ARC_EN(r16,v)                     _BFSET_(r16, 2, 2,v)
+    #define   GET32HDMI_ctrl_ARC_CMODE(r32)                    _BFGET_(r32,19,19)
+    #define   SET32HDMI_ctrl_ARC_CMODE(r32,v)                  _BFSET_(r32,19,19,v)
+    #define   GET16HDMI_ctrl_ARC_CMODE(r16)                    _BFGET_(r16, 3, 3)
+    #define   SET16HDMI_ctrl_ARC_CMODE(r16,v)                  _BFSET_(r16, 3, 3,v)
+    #define   GET32HDMI_ctrl_ARC_HYST(r32)                     _BFGET_(r32,21,20)
+    #define   SET32HDMI_ctrl_ARC_HYST(r32,v)                   _BFSET_(r32,21,20,v)
+    #define   GET16HDMI_ctrl_ARC_HYST(r16)                     _BFGET_(r16, 5, 4)
+    #define   SET16HDMI_ctrl_ARC_HYST(r16,v)                   _BFSET_(r16, 5, 4,v)
+    #define   GET32HDMI_ctrl_M_EN_ARC(r32)                     _BFGET_(r32,22,22)
+    #define   SET32HDMI_ctrl_M_EN_ARC(r32,v)                   _BFSET_(r32,22,22,v)
+    #define   GET16HDMI_ctrl_M_EN_ARC(r16)                     _BFGET_(r16, 6, 6)
+    #define   SET16HDMI_ctrl_M_EN_ARC(r16,v)                   _BFSET_(r16, 6, 6,v)
+    #define   GET32HDMI_ctrl_P_EN_ARC(r32)                     _BFGET_(r32,23,23)
+    #define   SET32HDMI_ctrl_P_EN_ARC(r32,v)                   _BFSET_(r32,23,23,v)
+    #define   GET16HDMI_ctrl_P_EN_ARC(r16)                     _BFGET_(r16, 7, 7)
+    #define   SET16HDMI_ctrl_P_EN_ARC(r16,v)                   _BFSET_(r16, 7, 7,v)
+    #define   GET32HDMI_ctrl_POLSWAP_ARC(r32)                  _BFGET_(r32,24,24)
+    #define   SET32HDMI_ctrl_POLSWAP_ARC(r32,v)                _BFSET_(r32,24,24,v)
+    #define   GET16HDMI_ctrl_POLSWAP_ARC(r16)                  _BFGET_(r16, 8, 8)
+    #define   SET16HDMI_ctrl_POLSWAP_ARC(r16,v)                _BFSET_(r16, 8, 8,v)
+    #define   GET32HDMI_ctrl_TM_EN_ARC(r32)                    _BFGET_(r32,25,25)
+    #define   SET32HDMI_ctrl_TM_EN_ARC(r32,v)                  _BFSET_(r32,25,25,v)
+    #define   GET16HDMI_ctrl_TM_EN_ARC(r16)                    _BFGET_(r16, 9, 9)
+    #define   SET16HDMI_ctrl_TM_EN_ARC(r16,v)                  _BFSET_(r16, 9, 9,v)
+
+#pragma  pack()
 #endif

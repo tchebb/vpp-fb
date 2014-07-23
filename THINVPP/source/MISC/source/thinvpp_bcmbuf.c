@@ -20,7 +20,7 @@
 
 #include "thinvpp_module.h"
 #include "thinvpp_common.h"
-#include "Galois_memmap.h"
+#include "memmap.h"
 #include "avio.h"
 #include "galois_io.h"
 #include "maddr.h"
@@ -31,11 +31,14 @@
 #include <asm/outercache.h>
 #include <asm/io.h>
 
+#define FLUSH_DCACHE_RANGE(start, size) inner_outer_flush_dcache_area(start, size)
+#define BCMBUF_ALIGN	0x20
+
 static void inner_outer_flush_dcache_area(void *addr, size_t length)
 {
 	phys_addr_t start, end;
 
-    __cpuc_flush_dcache_area(addr, length);
+	__cpuc_flush_dcache_area(addr, length);
 
 	start = virt_to_phys(addr);
 	end   = start + length;
@@ -51,45 +54,21 @@ static void inner_outer_flush_dcache_area(void *addr, size_t length)
  * RETURN:  1 - succeed
  *          0 - failed to initialize a BCM buffer
  ****************************************************************/
-#if LOGO_USE_SHM
-int THINVPP_BCMBUF_Set(BCMBUF *pbcmbuf, void *addr, unsigned phys, int size)
-{
-    if (size <= 0)
-        return (MV_THINVPP_EBADPARAM);
-
-    /* allocate memory for the buffer */
-    pbcmbuf->addr = (int)addr;
-    if(!pbcmbuf->addr)
-        return MV_THINVPP_ENOMEM;
-    pbcmbuf->phys = phys;
-
-    pbcmbuf->size = size;
-    pbcmbuf->head = (unsigned int *)((pbcmbuf->addr+0x1f)&(~0x01f));
-    if (pbcmbuf->head != (unsigned int *)pbcmbuf->addr)
-        pbcmbuf->size = size-64;
-
-    return MV_THINVPP_OK;
-}
-#else
 int THINVPP_BCMBUF_Create(BCMBUF *pbcmbuf, int size)
 {
     if (size <= 0)
         return (MV_THINVPP_EBADPARAM);
 
     /* allocate memory for the buffer */
-    pbcmbuf->addr = (int)THINVPP_MALLOC(size);
+    pbcmbuf->addr = (uintptr_t)THINVPP_MALLOC(size + BCMBUF_ALIGN);
     if(!pbcmbuf->addr)
         return MV_THINVPP_ENOMEM;
 
     pbcmbuf->size = size;
-    pbcmbuf->head = (unsigned int *)((pbcmbuf->addr+0x1f)&(~0x01f));
-    if (pbcmbuf->head != (unsigned int *)pbcmbuf->addr)
-        pbcmbuf->size = size-64;
+    pbcmbuf->head = (void*)ALIGN((uintptr_t)pbcmbuf->addr, BCMBUF_ALIGN);
 
     return MV_THINVPP_OK;
 }
-#endif
-
 
 /***************************************************************
  * FUNCTION: free register programming buffer
@@ -103,9 +82,7 @@ int THINVPP_BCMBUF_Destroy(BCMBUF *pbcmbuf)
     if (!pbcmbuf->addr)
         return (MV_THINVPP_EBADCALL);
 
-#if !LOGO_USE_SHM
     THINVPP_FREE((int *)(pbcmbuf->addr));
-#endif
 
     pbcmbuf->addr = 0;
     pbcmbuf->head = NULL;
@@ -126,8 +103,6 @@ int THINVPP_BCMBUF_Reset(BCMBUF *pbcmbuf)
 
     /*set pointers to the head*/
     pbcmbuf->writer = pbcmbuf->head;
-    pbcmbuf->dv1_head = pbcmbuf->head;
-    //pbcmbuf->dv3_head = pbcmbuf->dv1_head + (pbcmbuf->size/16)*3;
     pbcmbuf->subID = -1; /* total */
 
     return MV_THINVPP_OK;
@@ -141,20 +116,12 @@ int THINVPP_BCMBUF_Reset(BCMBUF *pbcmbuf)
 void THINVPP_BCMBUF_Select(BCMBUF *pbcmbuf, int subID)
 {
     /* reset read/write pointer of the buffer */
-    if (subID == CPCB_1){
-        pbcmbuf->writer = pbcmbuf->dv1_head;
-    //} else if (subID == CPCB_3) {
-        //pbcmbuf->writer = pbcmbuf->dv3_head;
-    //} else {
-        //pbcmbuf->writer = pbcmbuf->head;
-    }
-
+    pbcmbuf->writer = pbcmbuf->head;
     pbcmbuf->subID = subID;
 
     return;
 }
 
-#if !LOGO_USE_SHM
 /*********************************************************
  * FUNCTION: write register address (4 bytes) and value (4 bytes) to the buffer
  * PARAMS: *buf - pointer to the buffer descriptor
@@ -168,13 +135,11 @@ int THINVPP_BCMBUF_Write(BCMBUF *pbcmbuf, unsigned int address, unsigned int val
     unsigned int *end;
 
     /*if not enough space for storing another 8 bytes, wrap around happens*/
-    if (pbcmbuf->subID == CPCB_1)
-        end = pbcmbuf->dv3_head;
-    else
-        end = pbcmbuf->tail;
+    end = pbcmbuf->tail;
 
     if(pbcmbuf->writer == end){
         /*the buffer is full, no space for wrap around*/
+	printk("BCMBUF_Write full!!!\n");
         return MV_THINVPP_EBCMBUFFULL;
     }
 
@@ -186,40 +151,78 @@ int THINVPP_BCMBUF_Write(BCMBUF *pbcmbuf, unsigned int address, unsigned int val
 
     return MV_THINVPP_OK;
 }
-#endif
 
-#if LOGO_USE_SHM
-int THINVPP_CFGQ_Set(DHUB_CFGQ *cfgQ, void *addr, unsigned phys, int size)
+/*********************************************************************
+ * FUNCTION: do the hardware transaction
+ * PARAMS: *buf - pointer to the buffer descriptor
+ ********************************************************************/
+void THINVPP_BCMBUF_HardwareTrans(BCMBUF *pbcmbuf, int block)
 {
+    HDL_semaphore *pSemHandle;
+    HDL_dhub2d *pDhubHandle;
+    unsigned int bcm_sched_cmd[2];
+    int dhubID;
+    void *start;
+    int status;
+    int size;
+
+    start = pbcmbuf->head;
+    size = (int)pbcmbuf->writer-(int)start;
+
     if (size <= 0)
-        return (MV_THINVPP_EBADPARAM);
+        return;
 
-    /* allocate memory for the buffer */
-    cfgQ->base_addr = (int)addr;
-    if(!cfgQ->base_addr)
-        return MV_THINVPP_ENOMEM;
-    cfgQ->phys = phys;
-    cfgQ->addr = (int *)((cfgQ->base_addr+0x1f)&(~0x01f));
-    cfgQ->len = 0;
+    /* flush data in D$ */
+    FLUSH_DCACHE_RANGE(start, size);
+    start = (void*)virt_to_phys(start);
+    printk("virt_to_phys(start): %p, size: %d\n", start, size);
 
-    return MV_THINVPP_OK;
+    /* start BCM engine */
+    dhubID = avioDhubChMap_vpp_BCM_R;
+    pDhubHandle = &VPP_dhubHandle;
+
+    /* clear BCM interrupt */
+    pSemHandle = dhub_semaphore(&(pDhubHandle->dhub));
+    status = semaphore_chk_full(pSemHandle, dhubID);
+    while (status) {
+        semaphore_pop(pSemHandle, dhubID, 1);
+        semaphore_clr_full(pSemHandle, dhubID);
+        status = semaphore_chk_full(pSemHandle, dhubID);
+    }
+
+    dhub_channel_generate_cmd(&(pDhubHandle->dhub), dhubID, (int)start, (int)size, 0, 0, 0, 1, bcm_sched_cmd);
+    while( !BCM_SCHED_PushCmd(BCM_SCHED_Q12, bcm_sched_cmd, NULL));
+
+    if (block){
+        /* check BCM interrupt */
+        pSemHandle = dhub_semaphore(&(pDhubHandle->dhub));
+        status = semaphore_chk_full(pSemHandle, dhubID);
+        while (!status) {
+            status = semaphore_chk_full(pSemHandle, dhubID);
+        }
+
+        /* clear BCM interrupt */
+        semaphore_pop(pSemHandle, dhubID, 1);
+        semaphore_clr_full(pSemHandle, dhubID);
+    }
+
+    return;
 }
-#else
+
 int THINVPP_CFGQ_Create(DHUB_CFGQ *cfgQ, int size)
 {
     if (size <= 0)
         return (MV_THINVPP_EBADPARAM);
 
     /* allocate memory for the buffer */
-    cfgQ->base_addr = (int)THINVPP_MALLOC(size);
+    cfgQ->base_addr = (int)THINVPP_MALLOC(size + BCMBUF_ALIGN);
     if(!cfgQ->base_addr)
         return MV_THINVPP_ENOMEM;
-    cfgQ->addr = (int *)((cfgQ->base_addr+0x1f)&(~0x01f));
+    cfgQ->addr = (void*)ALIGN((uintptr_t)cfgQ->base_addr, BCMBUF_ALIGN);
     cfgQ->len = 0;
 
     return MV_THINVPP_OK;
 }
-#endif
 
 int THINVPP_CFGQ_Destroy(DHUB_CFGQ *cfgQ)
 {
@@ -234,9 +237,7 @@ int THINVPP_CFGQ_Destroy(DHUB_CFGQ *cfgQ)
         *(cfgQ->addr+i*2+1) = 0xf7f60000 + (VOP_HDMI_SEL<<2);
     }
 
-#if !LOGO_USE_SHM
     THINVPP_FREE((int *)(cfgQ->base_addr));
-#endif
 
     cfgQ->base_addr = 0;
     cfgQ->addr = 0;
@@ -276,18 +277,15 @@ int THINVPP_BCMDHUB_CFGQ_Commit(DHUB_CFGQ *cfgQ, int cpcbID)
         BCM_SCHED_GetEmptySts(sched_qid, &sched_stat);
         if (sched_stat == 0)
         {
-            printk("****************[VPP fastlogo]ERROR! Q%d SCHED QUEUE OVERFLOW!!!!*************\n", sched_qid);
-            printk("[VPP fastlogo] BCM Q fulless status: %X\n", MV_MEMIO32_READ(MEMMAP_AVIO_BCM_REG_BASE+RA_AVIO_BCM_FULL_STS));
+            printk("****************[vpp_fb]ERROR! Q%d SCHED QUEUE OVERFLOW!!!!*************\n", sched_qid);
+            printk("[vpp_fb] BCM Q fulless status: %X\n", MV_MEMIO32_READ(MEMMAP_AVIO_BCM_REG_BASE+RA_AVIO_BCM_FULL_STS));
             return MV_THINVPP_EIOFAIL;
         }
     }
 
-#if LOGO_USE_SHM
-    dhub_channel_generate_cmd(&(VPP_dhubHandle.dhub), avioDhubChMap_vpp_BCM_R, cfgQ->phys, (int)cfgQ->len*8, 0, 0, 0, 1, bcm_sched_cmd);
-#else
     inner_outer_flush_dcache_area(cfgQ->addr, cfgQ->len*8);
     dhub_channel_generate_cmd(&(VPP_dhubHandle.dhub), avioDhubChMap_vpp_BCM_R, (int)virt_to_phys(cfgQ->addr), (int)cfgQ->len*8, 0, 0, 0, 1, bcm_sched_cmd);
-#endif
+
     while( !BCM_SCHED_PushCmd(sched_qid, bcm_sched_cmd, NULL));
 
     return MV_THINVPP_OK;
@@ -305,28 +303,16 @@ int THINVPP_BCMBUF_To_CFGQ(BCMBUF *pbcmbuf, DHUB_CFGQ *cfgQ)
     unsigned int bcm_sched_cmd[2];
     unsigned int *start;
 
-#if LOGO_USE_SHM
-    start = pbcmbuf->dv1_head;
-#else
-    if (pbcmbuf->subID == CPCB_1)
-        start = pbcmbuf->dv1_head;
-    else if (pbcmbuf->subID == CPCB_3)
-        start = pbcmbuf->dv3_head;
-    else
-        start = pbcmbuf->head;
-#endif
+    start = pbcmbuf->head;
 
-    size = (int)pbcmbuf->writer-(int)start;
+    size = (uintptr_t)pbcmbuf->writer - (uintptr_t)start;
 
     if (size <= 0)
         return MV_THINVPP_EBADPARAM;
 
-#if LOGO_USE_SHM
-    dhub_channel_generate_cmd(&(VPP_dhubHandle.dhub), avioDhubChMap_vpp_BCM_R, pbcmbuf->phys, size, 0, 0, 0, 1, bcm_sched_cmd);
-#else
     inner_outer_flush_dcache_area(start, size);
     dhub_channel_generate_cmd(&(VPP_dhubHandle.dhub), avioDhubChMap_vpp_BCM_R, (int)virt_to_phys(start), size, 0, 0, 0, 1, bcm_sched_cmd);
-#endif
+
     while( !BCM_SCHED_PushCmd(BCM_SCHED_Q13, bcm_sched_cmd, cfgQ->addr + cfgQ->len*2));
     cfgQ->len += 2;
 
@@ -346,12 +332,9 @@ void THINVPP_CFGQ_To_CFGQ(DHUB_CFGQ *src_cfgQ, DHUB_CFGQ *cfgQ)
     if (src_cfgQ->len <= 0)
         return;
 
-#if LOGO_USE_SHM
-    dhub_channel_generate_cmd(&(VPP_dhubHandle.dhub), avioDhubChMap_vpp_BCM_R, src_cfgQ->phys, (int)src_cfgQ->len*8, 0, 0, 0, 1, bcm_sched_cmd);
-#else
     inner_outer_flush_dcache_area(src_cfgQ->addr, src_cfgQ->len*8);
     dhub_channel_generate_cmd(&(VPP_dhubHandle.dhub), avioDhubChMap_vpp_BCM_R, (int)virt_to_phys(src_cfgQ->addr), (int)src_cfgQ->len*8, 0, 0, 0, 1, bcm_sched_cmd);
-#endif
+
     while( !BCM_SCHED_PushCmd(BCM_SCHED_Q13, bcm_sched_cmd, cfgQ->addr + cfgQ->len*2));
     cfgQ->len += 2;
 }

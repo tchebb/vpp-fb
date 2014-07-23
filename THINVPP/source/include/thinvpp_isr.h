@@ -27,8 +27,7 @@ extern "C" {
 #endif
 
 
-// TODO: HUGE HACK
-void THINVPP_CPCB_ISR_service(THINVPP_OBJ *vpp_obj, int cpcbID, volatile int *cpcb_start_flag);
+void THINVPP_CPCB_ISR_service(THINVPP_OBJ *vpp_obj, int cpcbID);
 void THINVPP_Enable_ISR_Interrupt(THINVPP_OBJ *vpp_obj, int cpcbID, int flag);
 
 #ifdef __cplusplus

@@ -25,6 +25,8 @@
 extern "C" {
 #endif
 
+#include "thinvpp_cfg.h"
+
 /*******************************************************************
  * FUNCTION: set CPCB(for Berlin) or DV(for Galois) output resolution
  * INPUT: cpcbID - CPCB(for Berlin) or DV(for Galois) id

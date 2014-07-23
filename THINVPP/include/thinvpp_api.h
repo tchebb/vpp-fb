@@ -1897,30 +1897,15 @@ typedef struct
 {
     unsigned planes;
     VPP_WIN win;
-    unsigned *logoBuf;
+    unsigned *fbBuf;
+    unsigned *fbBuf_orig_malloc;
     unsigned *mapaddr;
     long length;
     unsigned count;
 
-    unsigned *logo_frame_dma_cmd;
+    unsigned *fb_frame_dma_cmd;
 
-#if LOGO_USE_SHM
-    size_t mSHMOffset;
-    unsigned mSHMSize;
-
-    char * bcmQ;
-    unsigned bcmQ_phys;
-    unsigned bcmQ_len;
-
-    char * dmaQ;
-    unsigned dmaQ_phys;
-    unsigned dmaQ_len;
-
-    char * cfgQ;
-    unsigned cfgQ_phys;
-    unsigned cfgQ_len;
-#endif
-} logo_device_t;
+} fb_device_t;
 
 /************* VPP module external APIs *****************/
 
@@ -1933,7 +1918,7 @@ typedef struct
  *         MV_THINVPP_ENODEV - no device
  *         MV_THINVPP_ENOMEM - no memory
  ***********************************************/
-int MV_THINVPP_Create(int base_addr, logo_device_t *fastlogo_ctx);
+int MV_THINVPP_Create(int base_addr, fb_device_t *vppfb_ctx);
 
 /***********************************************
  * FUNCTION: destroy a VPP object
@@ -1995,6 +1980,20 @@ int MV_THINVPP_CloseDispWindow(void);
 
 int MV_THINVPP_Stop(void);
 
+/********************************************************************************
+ * FUNCTION: Set Hdmi Video format
+ * INPUT: color_fmt - color format (RGB, YCbCr 444, 422)
+ *      : bit_depth - 8/10/12 bit color
+ *      : pixel_rept - 1/2/4 repetitions of pixel
+ * RETURN: MV_THINVPP_OK - SUCCEED
+ *         MV_EBADPARAM - invalid parameters
+ *         MV_EUNCONFIG - VPP not configured
+ *         MV_THINVPP_ENODEV - no device
+ *         MV_EUNSUPPORT - channel not connected in configuration
+ *         MV_THINVPP_EBADCALL - channel not connected to DV1
+ *         MV_ECMDQFULL - command queue is full
+ ********************************************************************************/
+int MV_THINVPP_SetHdmiVideoFmt(int color_fmt, int bit_depth, int pixel_rept);
 
 #ifdef __cplusplus
 }
