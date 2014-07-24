@@ -72,12 +72,20 @@ static int startChannelDataLoader(THINVPP_OBJ *vpp_obj, int chanID)
     cpcbID = CPCB_OF_CHAN(vpp_obj, chanID);
     chan = &vpp_obj->chan[chanID];
 
-    if (chanID == CHAN_MAIN) { /* none AUX channel */
+    if ( (chanID == CHAN_MAIN) || (chanID == CHAN_GFX0)) { /* none AUX channel */
         VBUF_INFO * pinfo;
         unsigned active_left, active_width, frame_addr;
         unsigned dlr_id = VPP_FE_DLR_CHANNEL_MAIN;
         unsigned scl_id = VPP_FRC_SCL_MAIN;
         PLANE *plane = &vpp_obj->plane[PLANE_MAIN];
+
+        // XXX: vnz code
+        if(chanID == CHAN_GFX0) {
+            dlr_id = VPP_FE_DLR_CHANNEL_IG;
+            scl_id = VPP_FRC_SCL_OSD; //XXX What should this be???
+            plane = &vpp_obj->plane[PLANE_GFX0];
+        }
+
         VPP_FE_DLR_PLANE_DATA_FMT plane_fmt;
         VPP_SCL_CTRL scl_ctrl;
         VPP_FRC_RES frc_res;
@@ -105,8 +113,12 @@ static int startChannelDataLoader(THINVPP_OBJ *vpp_obj, int chanID)
 
             THINVPP_CPCB_SetPlaneAttribute(vpp_obj, cpcbID, chan->dvlayerID, chan->disp_win_attr.alpha, chan->disp_win_attr.bgcolor);
 
+            // XXX: WAS:
             plane_fmt.SrcFmt = SRCFMT_YUV422;
             plane_fmt.FmtOrder = ORDER_YUYV;
+            // XXX: NOW:
+            //plane_fmt.SrcFmt = SRCFMT_RGB565;
+            //plane_fmt.FmtOrder = ORDER_RGBA;
             FE_DLR_SetPlaneDataFmt(vpp_obj, dlr_id, &plane_fmt);
 
             FRC_SCL_ChopCtrl(vpp_obj, scl_id, 0);
@@ -272,7 +284,9 @@ void THINVPP_CPCB_ISR_service(THINVPP_OBJ *vpp_obj, int cpcbID)
 
 	prepareQ(vpp_obj, cpcbID);
 
-        startChannelDataLoader(vpp_obj, CHAN_MAIN);
+        // XXX vnz code:
+        //startChannelDataLoader(vpp_obj, CHAN_MAIN);
+        startChannelDataLoader(vpp_obj, CHAN_GFX0);
 
 	THINVPP_CFGQ_To_CFGQ(&(vpp_obj->dv[CPCB_1].vbi_dma_cfgQ), &(vpp_obj->dv[CPCB_1].vbi_bcm_cfgQ));
         toggleQ(vpp_obj, cpcbID);

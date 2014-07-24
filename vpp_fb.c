@@ -120,7 +120,7 @@ static irqreturn_t vppfb_devices_vpp_isr(int irq, void *dev_id)
 	int instat;
 	HDL_semaphore *pSemHandle;
 	u64 cpcb0_isr_time_current;
-
+    
 	++par->vppfb_ctx.count;
 	par->fb_isr_count++;
 
@@ -345,7 +345,7 @@ static int vpp_fb_set_par(struct fb_info *info)
 
 	/* set up fb frame */
 	vbuf.alpha   = 255;
-	vbuf.bgcolor = 0x00800080;
+	vbuf.bgcolor = 0xaaaaaaaa;
 	vbuf.m_disp_offset   = 0;
 	vbuf.m_active_left   = 0; // TODO: Panning support?
 	vbuf.m_active_top    = 0;
@@ -428,8 +428,10 @@ static int vpp_fb_set_par(struct fb_info *info)
 	par->vppfb_ctx.win.height = info->var.yres;
     if (!_init_done)
     {
-        MV_THINVPP_SetMainDisplayFrame(&vbuf);
-        MV_THINVPP_OpenDispWindow(PLANE_MAIN, &par->vppfb_ctx.win, NULL);
+        //MV_THINVPP_SetMainDisplayFrame(&vbuf);
+        //MV_THINVPP_OpenDispWindow(PLANE_MAIN, &par->vppfb_ctx.win, NULL);
+        MV_THINVPP_SetGFX0DisplayFrame(&vbuf);
+        MV_THINVPP_OpenDispWindow(PLANE_GFX0, &par->vppfb_ctx.win, NULL);
     }
 
 	/* register ISR */

@@ -46,8 +46,10 @@ int THINVPP_SCL_Reset(THINVPP_OBJ *vpp_obj)
     FE_DLR_LoadDefaultVal(vpp_obj, VPP_FE_DLR_CHANNEL_PIP);
     FRC_SCL_LoadDefaultVal(vpp_obj, VPP_FRC_SCL_PIP);
 #endif
-    FE_DLR_LoadDefaultVal(vpp_obj, VPP_FE_DLR_CHANNEL_OFFLINE);
+    FE_DLR_LoadDefaultVal(vpp_obj, VPP_FE_DLR_CHANNEL_IG);
+    FRC_SCL_LoadDefaultVal(vpp_obj, VPP_FRC_SCL_OSD);
 
+    FE_DLR_LoadDefaultVal(vpp_obj, VPP_FE_DLR_CHANNEL_OFFLINE);
     FRC_SCL_LoadDefaultVal(vpp_obj, VPP_FRC_SCL_BE);
 
     /* reset SW BE switch */
@@ -97,6 +99,12 @@ int THINVPP_SCL_Config(THINVPP_OBJ *vpp_obj)
         vpp_obj->chan[CHAN_AUX].scl_in_out_mode = 1; /* 24-bit input & 16-bit output */
         /* no switch setting needed for AUX channel in B0 */
         /* because it is hard-wired to CPCB-3 */
+    }
+
+    if (vpp_obj->chan[CHAN_GFX0].dvID != DV_INVALID){
+        FE_DLR_ClearChannel(vpp_obj, VPP_FE_DLR_CHANNEL_IG);
+        vpp_obj->chan[CHAN_GFX0].scl_in_out_mode = 0; /* 24-bit input & 16-bit output */
+        FRC_SCL_SetBeSwitch(vpp_obj, CHAN_GFX0, vpp_obj->chan[CHAN_GFX0].dvID);
     }
 
     return (MV_THINVPP_OK);

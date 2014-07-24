@@ -312,9 +312,14 @@ int MV_THINVPP_Config(void)
     } // <- config FE planes
 
     /* config channels */
+    /* XXX
     thinvpp_obj->chan[CHAN_MAIN].dvID = CPCB_1;
     thinvpp_obj->chan[CHAN_MAIN].zorder = CPCB_ZORDER_2;
     thinvpp_obj->chan[CHAN_MAIN].dvlayerID = CPCB1_PLANE_1;
+    */
+    thinvpp_obj->chan[CHAN_GFX0].dvID = CPCB_1;
+    thinvpp_obj->chan[CHAN_GFX0].zorder = CPCB_ZORDER_2;
+    thinvpp_obj->chan[CHAN_GFX0].dvlayerID = CPCB1_PLANE_1;
 
     thinvpp_obj->chan[CHAN_AUX].dvID = CPCB_3;
     thinvpp_obj->chan[CHAN_AUX].zorder = CPCB_ZORDER_1;
@@ -455,8 +460,8 @@ int MV_THINVPP_SetCPCBOutputResolution(int cpcbID, int resID, int bit_depth)
         if (cpcbID == CPCB_1)
         {
             gs_trace("SetCPCOutputResolution: SetHdmiVideoFmt\n");
-            MV_THINVPP_SetHdmiVideoFmt(OUTPUT_COLOR_FMT_YCBCR444, bit_depth, 1);
-            //MV_THINVPP_SetHdmiVideoFmt(OUTPUT_COLOR_FMT_RGB888, bit_depth, 1);
+            //MV_THINVPP_SetHdmiVideoFmt(OUTPUT_COLOR_FMT_YCBCR444, bit_depth, 1);
+            MV_THINVPP_SetHdmiVideoFmt(OUTPUT_COLOR_FMT_RGB888, bit_depth, 1);
         }
 
         /* set DV status to active */
@@ -494,6 +499,28 @@ int MV_THINVPP_SetMainDisplayFrame(VBUF_INFO *pinfo)
         return (MV_THINVPP_EBADPARAM);
 
     plane = &(thinvpp_obj->plane[PLANE_MAIN]);
+    plane->pinfo = pinfo;
+
+    plane->actv_win.x = pinfo->m_active_left;
+    plane->actv_win.y = pinfo->m_active_top;
+    plane->actv_win.width  = pinfo->m_active_width;
+    plane->actv_win.height = pinfo->m_active_height;
+
+    return (MV_THINVPP_OK);
+}
+
+
+int MV_THINVPP_SetGFX0DisplayFrame(VBUF_INFO *pinfo)
+{
+    PLANE *plane;
+
+    if (!thinvpp_obj)
+        return (MV_THINVPP_ENODEV);
+
+    if (!pinfo)
+        return (MV_THINVPP_EBADPARAM);
+
+    plane = &(thinvpp_obj->plane[PLANE_GFX0]);
     plane->pinfo = pinfo;
 
     plane->actv_win.x = pinfo->m_active_left;

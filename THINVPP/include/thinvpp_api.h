@@ -1854,7 +1854,6 @@ typedef enum VPP_FRC_SCL_NUM
     VPP_FRC_SCL_MAX
 }VPP_FRC_SCL_NUM;
 
-
 /*data structure for scaler control*/
 typedef struct VPP_SCL_CTRL_T
 {
@@ -1961,6 +1960,7 @@ int MV_THINVPP_SetCPCBOutputResolution(int cpcbID, int resID, int bit_depth);
 int MV_THINVPP_IsCPCBActive(int cpcbID);
 
 int MV_THINVPP_SetMainDisplayFrame(VBUF_INFO *pinfo);
+int MV_THINVPP_SetGFX0DisplayFrame(VBUF_INFO *pinfo);
 
 /******************************************************************************
  * FUNCTION: open a window of a video/graphics plane for display.
