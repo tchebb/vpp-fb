@@ -101,6 +101,7 @@ static struct fb_var_screeninfo vpp_fb_var __devinitdata = {
 	.yres_virtual = 720,
 	.bits_per_pixel = 16,
 	.grayscale = V4L2_PIX_FMT_YUYV,
+    //.nonstd = V4L2_PIX_FMT_YUYV,
 	//.grayscale = 0,
     .red.offset = 0,
     .red.length = 5,
@@ -430,8 +431,8 @@ static int vpp_fb_set_par(struct fb_info *info)
     {
         //MV_THINVPP_SetMainDisplayFrame(&vbuf);
         //MV_THINVPP_OpenDispWindow(PLANE_MAIN, &par->vppfb_ctx.win, NULL);
-        MV_THINVPP_SetGFX0DisplayFrame(&vbuf);
-        MV_THINVPP_OpenDispWindow(PLANE_GFX0, &par->vppfb_ctx.win, NULL);
+        MV_THINVPP_SetPGDisplayFrame(&vbuf);
+        MV_THINVPP_OpenDispWindow(PLANE_PG, &par->vppfb_ctx.win, NULL);
     }
 
 	/* register ISR */

@@ -46,8 +46,11 @@ int THINVPP_SCL_Reset(THINVPP_OBJ *vpp_obj)
     FE_DLR_LoadDefaultVal(vpp_obj, VPP_FE_DLR_CHANNEL_PIP);
     FRC_SCL_LoadDefaultVal(vpp_obj, VPP_FRC_SCL_PIP);
 #endif
-    FE_DLR_LoadDefaultVal(vpp_obj, VPP_FE_DLR_CHANNEL_IG);
-    FRC_SCL_LoadDefaultVal(vpp_obj, VPP_FRC_SCL_OSD);
+    //FE_DLR_LoadDefaultVal(vpp_obj, VPP_FE_DLR_CHANNEL_IG);
+    //FRC_SCL_LoadDefaultVal(vpp_obj, VPP_FRC_SCL_OSD);
+    
+    FE_DLR_LoadDefaultVal(vpp_obj, VPP_FE_DLR_CHANNEL_PG);
+    FRC_SCL_LoadDefaultVal(vpp_obj, VPP_FRC_SCL_PG); // XXX: SCL default for PG not implemented now...
 
     FE_DLR_LoadDefaultVal(vpp_obj, VPP_FE_DLR_CHANNEL_OFFLINE);
     FRC_SCL_LoadDefaultVal(vpp_obj, VPP_FRC_SCL_BE);
@@ -102,9 +105,17 @@ int THINVPP_SCL_Config(THINVPP_OBJ *vpp_obj)
     }
 
     if (vpp_obj->chan[CHAN_GFX0].dvID != DV_INVALID){
+        printk(KERN_INFO "pl-3 IG/G0 setting DLR channel\n");
         FE_DLR_ClearChannel(vpp_obj, VPP_FE_DLR_CHANNEL_IG);
         vpp_obj->chan[CHAN_GFX0].scl_in_out_mode = 0; /* 24-bit input & 16-bit output */
         FRC_SCL_SetBeSwitch(vpp_obj, CHAN_GFX0, vpp_obj->chan[CHAN_GFX0].dvID);
+    }
+
+    if (vpp_obj->chan[CHAN_PG].dvID != DV_INVALID){
+        printk(KERN_INFO "pl-3a PG setting DLR channel\n");
+        FE_DLR_ClearChannel(vpp_obj, VPP_FE_DLR_CHANNEL_PG);
+        vpp_obj->chan[CHAN_PG].scl_in_out_mode = 0; /* 24-bit input & 16-bit output */
+        FRC_SCL_SetBeSwitch(vpp_obj, CHAN_PG, vpp_obj->chan[CHAN_PG].dvID);
     }
 
     return (MV_THINVPP_OK);

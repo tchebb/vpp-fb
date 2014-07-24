@@ -247,6 +247,53 @@ int CPCB_TG_SetPlaneWindow(THINVPP_OBJ *vpp_obj, int CpcbUnit, int CpCbPlane, PV
                 PlaneAddr = vpp_obj->base_addr + (CPCB2_P2_CR1_SX_L << 2);
 #endif
             break;
+
+        // NEW FOR GFX0 PLANE //
+        case TG_PLANE3:
+            if (VPP_CPCB0 == CpcbUnit)
+                PlaneAddr = vpp_obj->base_addr + (CPCB0_P3_SX_L << 2);
+            else if (VPP_CPCB1 == CpcbUnit)
+            {
+                printk(KERN_INFO "actually setting pl-3 window\n");
+                PlaneAddr = vpp_obj->base_addr + (CPCB1_P3_SX_L << 2);
+            }
+            else
+                return (MV_THINVPP_EBADPARAM); // CPCB2 has no IG/G0 plane
+            break;
+        case TG_PLANE3_CROP:
+            if (VPP_CPCB0 == CpcbUnit)
+                PlaneAddr = vpp_obj->base_addr + (CPCB0_P3_CR_SX_L << 2);
+            else if (VPP_CPCB1 == CpcbUnit)
+            {
+                printk(KERN_INFO "actually setting pl-3 crop\n");
+                PlaneAddr = vpp_obj->base_addr + (CPCB1_P3_CR_SX_L << 2);
+            }
+            else
+                return (MV_THINVPP_EBADPARAM); // CPCB2 has no IG/G0 CR
+        // NEW FOR PG PLANE //
+        case TG_PLANE3A:
+            if (VPP_CPCB0 == CpcbUnit)
+                PlaneAddr = vpp_obj->base_addr + (CPCB0_P3A_CR_SX_L << 2);
+            else if (VPP_CPCB1 == CpcbUnit)
+            {
+                printk(KERN_INFO "actually setting pla-3 window\n");
+                PlaneAddr = vpp_obj->base_addr + (CPCB1_P3A_SX_L << 2);
+            }
+            else
+                return (MV_THINVPP_EBADPARAM); // CPCB2 has no IG/G0 plane
+            break;
+        case TG_PLANE3A_CROP:
+            if (VPP_CPCB0 == CpcbUnit)
+                PlaneAddr = vpp_obj->base_addr + (CPCB0_P3A_CR_SX_L << 2);
+            else if (VPP_CPCB1 == CpcbUnit)
+            {
+                printk(KERN_INFO "actually setting pla-3 crop\n");
+                PlaneAddr = vpp_obj->base_addr + (CPCB1_P3A_CR_SX_L << 2);
+            }
+            else
+                return (MV_THINVPP_EBADPARAM); // CPCB2 has no IG/G0 CR
+            break;
+
         case TG_PLANE4_BASE_BORDER:
             if (VPP_CPCB0 == CpcbUnit)
                 PlaneAddr = vpp_obj->base_addr + (CPCB0_P4_SX_L << 2);

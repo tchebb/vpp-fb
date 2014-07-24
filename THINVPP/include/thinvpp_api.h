@@ -1961,6 +1961,7 @@ int MV_THINVPP_IsCPCBActive(int cpcbID);
 
 int MV_THINVPP_SetMainDisplayFrame(VBUF_INFO *pinfo);
 int MV_THINVPP_SetGFX0DisplayFrame(VBUF_INFO *pinfo);
+int MV_THINVPP_SetPGDisplayFrame(VBUF_INFO *pinfo);
 
 /******************************************************************************
  * FUNCTION: open a window of a video/graphics plane for display.

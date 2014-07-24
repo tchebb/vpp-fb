@@ -196,6 +196,10 @@ int VPP_OVL_SetPlaneAlpha(THINVPP_OBJ *vpp_obj, int OvlUnit, int plane, unsigned
         THINVPP_BCMBUF_Write(vpp_obj->pVbiBcmBuf, RegAddr, PlaneAlpha);
     } else if (Vpp_OVL_PLANE2 == plane){
         THINVPP_BCMBUF_Write(vpp_obj->pVbiBcmBuf, RegAddr + 4, PlaneAlpha);
+    } else if (Vpp_OVL_PLANE3 == plane){
+        THINVPP_BCMBUF_Write(vpp_obj->pVbiBcmBuf, RegAddr + 8, PlaneAlpha);
+    } else if (Vpp_OVL_PLANE3A == plane){
+        THINVPP_BCMBUF_Write(vpp_obj->pVbiBcmBuf, RegAddr + 12, PlaneAlpha);
     } else
         return MV_THINVPP_EBADPARAM;
 

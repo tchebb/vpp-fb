@@ -72,7 +72,7 @@ static int startChannelDataLoader(THINVPP_OBJ *vpp_obj, int chanID)
     cpcbID = CPCB_OF_CHAN(vpp_obj, chanID);
     chan = &vpp_obj->chan[chanID];
 
-    if ( (chanID == CHAN_MAIN) || (chanID == CHAN_GFX0)) { /* none AUX channel */
+    if ( (chanID == CHAN_MAIN) || (chanID == CHAN_PG)) { /* none AUX channel */
         VBUF_INFO * pinfo;
         unsigned active_left, active_width, frame_addr;
         unsigned dlr_id = VPP_FE_DLR_CHANNEL_MAIN;
@@ -80,10 +80,10 @@ static int startChannelDataLoader(THINVPP_OBJ *vpp_obj, int chanID)
         PLANE *plane = &vpp_obj->plane[PLANE_MAIN];
 
         // XXX: vnz code
-        if(chanID == CHAN_GFX0) {
-            dlr_id = VPP_FE_DLR_CHANNEL_IG;
-            scl_id = VPP_FRC_SCL_OSD; //XXX What should this be???
-            plane = &vpp_obj->plane[PLANE_GFX0];
+        if(chanID == CHAN_PG) {
+            dlr_id = VPP_FE_DLR_CHANNEL_PG;
+            scl_id = VPP_FRC_SCL_PG;
+            plane = &vpp_obj->plane[PLANE_PG];
         }
 
         VPP_FE_DLR_PLANE_DATA_FMT plane_fmt;
@@ -161,10 +161,10 @@ static int startChannelDataLoader(THINVPP_OBJ *vpp_obj, int chanID)
             FRC_SCL_SetFrcParams(vpp_obj, scl_id, &frc_res);
 
             /*program for detail scaler*/
-            FRC_SCL_SetDeLrstDelay(vpp_obj, VPP_FRC_SCL_DETAIL, 80);
-            FRC_SCL_SetWorkMode(vpp_obj, VPP_FRC_SCL_DETAIL, plane->mode);
-            FRC_SCL_SetSclCtrlParams(vpp_obj, VPP_FRC_SCL_DETAIL, &scl_res, &scl_ctrl);
-            FRC_SCL_SetFrcParams(vpp_obj, VPP_FRC_SCL_DETAIL, &frc_res);
+            //FRC_SCL_SetDeLrstDelay(vpp_obj, VPP_FRC_SCL_DETAIL, 80);
+            //FRC_SCL_SetWorkMode(vpp_obj, VPP_FRC_SCL_DETAIL, plane->mode);
+            //FRC_SCL_SetSclCtrlParams(vpp_obj, VPP_FRC_SCL_DETAIL, &scl_res, &scl_ctrl);
+            //FRC_SCL_SetFrcParams(vpp_obj, VPP_FRC_SCL_DETAIL, &frc_res);
 
             THINVPP_CPCB_SetPlaneSourceWindow(vpp_obj, cpcbID, chan->dvlayerID,
                 plane->actv_win.x, plane->actv_win.y, plane->actv_win.width, plane->actv_win.height);
@@ -275,20 +275,20 @@ void THINVPP_CPCB_ISR_service(THINVPP_OBJ *vpp_obj, int cpcbID)
     case STATUS_ACTIVE:
         /*when change cpcb output resolution, status was set to inactive, Dhub should be stopped at this moment*/
 
-	/* stop vpp-fb */
-	if(stop_flag == 1)
-	{
-		pDV->status = STATUS_STOP;
-		break;
-	}
+        /* stop vpp-fb */
+        if(stop_flag == 1)
+        {
+            pDV->status = STATUS_STOP;
+            break;
+        }
 
-	prepareQ(vpp_obj, cpcbID);
+        prepareQ(vpp_obj, cpcbID);
 
         // XXX vnz code:
         //startChannelDataLoader(vpp_obj, CHAN_MAIN);
-        startChannelDataLoader(vpp_obj, CHAN_GFX0);
+        startChannelDataLoader(vpp_obj, CHAN_PG);
 
-	THINVPP_CFGQ_To_CFGQ(&(vpp_obj->dv[CPCB_1].vbi_dma_cfgQ), &(vpp_obj->dv[CPCB_1].vbi_bcm_cfgQ));
+        THINVPP_CFGQ_To_CFGQ(&(vpp_obj->dv[CPCB_1].vbi_dma_cfgQ), &(vpp_obj->dv[CPCB_1].vbi_bcm_cfgQ));
         toggleQ(vpp_obj, cpcbID);
         break;
 

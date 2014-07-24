@@ -248,14 +248,22 @@ int THINVPP_CPCB_SetPlaneSourceWindow(THINVPP_OBJ *vpp_obj, int cpcbID, int laye
         case CPCB_1:
         case CPCB_2:
             switch (layerID){
-                case CPCB1_PLANE_1: /* CPCB plane 1 */
+                case CPCB1_PLANE_1: /* CPCB plane 1 = MAIN */
                     CPCB_TG_SetPlaneWindow(vpp_obj, cpcbID, TG_PLANE1_MAIN, &window);
                     CPCB_TG_SetPlaneWindow(vpp_obj, cpcbID, TG_PLANE1_MAIN_CROP1, &window);
                     CPCB_TG_SetPlaneWindow(vpp_obj, cpcbID, TG_PLANE1_MAIN_CROP2, &window);
                     break;
-                case CPCB1_PLANE_2: /* CPCB plane 2 */
+                case CPCB1_PLANE_2: /* CPCB plane 2 = PIP */
                     CPCB_TG_SetPlaneWindow(vpp_obj, cpcbID, TG_PLANE2_PIP, &window);
                     CPCB_TG_SetPlaneWindow(vpp_obj, cpcbID, TG_PLANE2_PIP_CROP1, &window);
+                    break;
+                case CPCB1_PLANE_3: /* CPCB plane 3 = IG/G0 */
+                    printk(KERN_INFO "pl3 wnd\n");
+                    CPCB_TG_SetPlaneWindow(vpp_obj, cpcbID, TG_PLANE3, &window);
+                    CPCB_TG_SetPlaneWindow(vpp_obj, cpcbID, TG_PLANE3_CROP, &window);
+                    printk(KERN_INFO "pl3a wnd\n");
+                    CPCB_TG_SetPlaneWindow(vpp_obj, cpcbID, TG_PLANE3A, &window);
+                    CPCB_TG_SetPlaneWindow(vpp_obj, cpcbID, TG_PLANE3A_CROP, &window);
                     break;
             }
             break;

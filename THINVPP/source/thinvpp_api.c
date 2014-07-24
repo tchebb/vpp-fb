@@ -304,8 +304,12 @@ int MV_THINVPP_Config(void)
             thinvpp_obj->plane[i].offline_dmaRID = avioDhubChMap_vpp_AUX_FRC_R; // AUX offline read-back DMA
             thinvpp_obj->plane[i].offline_dmaRdhubID = (int)(&VPP_dhubHandle);
 #endif // (BERLIN_CHIP_VERSION != BERLIN_BG2CD_A0)
-        } else if (i == PLANE_GFX0){
-            thinvpp_obj->plane[i].dmaRID = avioDhubChMap_ag_GFX_R; // inline read DMA
+        //} else if (i == PLANE_GFX0){
+        //    thinvpp_obj->plane[i].dmaRID = avioDhubChMap_ag_GFX_R; // inline read DMA
+        //    thinvpp_obj->plane[i].dmaRdhubID = (int)(&AG_dhubHandle);
+        } else if (i == PLANE_PG){
+            #define        avioDhubChMap_ag_PG_R         0xD
+            thinvpp_obj->plane[i].dmaRID = avioDhubChMap_ag_PG_R; // inline read DMA
             thinvpp_obj->plane[i].dmaRdhubID = (int)(&AG_dhubHandle);
         }
 
@@ -317,16 +321,16 @@ int MV_THINVPP_Config(void)
     thinvpp_obj->chan[CHAN_MAIN].zorder = CPCB_ZORDER_2;
     thinvpp_obj->chan[CHAN_MAIN].dvlayerID = CPCB1_PLANE_1;
     */
-    thinvpp_obj->chan[CHAN_GFX0].dvID = CPCB_1;
-    thinvpp_obj->chan[CHAN_GFX0].zorder = CPCB_ZORDER_2;
-    thinvpp_obj->chan[CHAN_GFX0].dvlayerID = CPCB1_PLANE_1;
-
+    thinvpp_obj->chan[CHAN_PG].dvID = CPCB_1;
+    thinvpp_obj->chan[CHAN_PG].zorder = CPCB_ZORDER_5; /* example, could be any value */
+    thinvpp_obj->chan[CHAN_PG].dvlayerID = CPCB1_PLANE_3;
+    /*
     thinvpp_obj->chan[CHAN_AUX].dvID = CPCB_3;
     thinvpp_obj->chan[CHAN_AUX].zorder = CPCB_ZORDER_1;
     thinvpp_obj->chan[CHAN_AUX].dvlayerID = CPCB1_PLANE_1; // PLANE-1 of CPCB-2
-
+    */
     thinvpp_obj->dv[CPCB_1].num_of_chans = 1;
-    thinvpp_obj->dv[CPCB_1].chanID[0] = CHAN_MAIN;
+    thinvpp_obj->dv[CPCB_1].chanID[0] = CHAN_PG;
 
     thinvpp_obj->dv[CPCB_1].num_of_vouts = 1;
     thinvpp_obj->dv[CPCB_1].voutID[0] = VOUT_HDMI;
@@ -509,6 +513,26 @@ int MV_THINVPP_SetMainDisplayFrame(VBUF_INFO *pinfo)
     return (MV_THINVPP_OK);
 }
 
+int MV_THINVPP_SetPGDisplayFrame(VBUF_INFO *pinfo)
+{
+    PLANE *plane;
+
+    if (!thinvpp_obj)
+        return (MV_THINVPP_ENODEV);
+
+    if (!pinfo)
+        return (MV_THINVPP_EBADPARAM);
+
+    plane = &(thinvpp_obj->plane[PLANE_PG]);
+    plane->pinfo = pinfo;
+
+    plane->actv_win.x = pinfo->m_active_left;
+    plane->actv_win.y = pinfo->m_active_top;
+    plane->actv_win.width  = pinfo->m_active_width;
+    plane->actv_win.height = pinfo->m_active_height;
+
+    return (MV_THINVPP_OK);
+}
 
 int MV_THINVPP_SetGFX0DisplayFrame(VBUF_INFO *pinfo)
 {
