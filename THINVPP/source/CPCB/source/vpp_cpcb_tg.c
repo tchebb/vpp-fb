@@ -322,6 +322,24 @@ int CPCB_TG_SetPlaneWindow(THINVPP_OBJ *vpp_obj, int CpcbUnit, int CpCbPlane, PV
                 PlaneAddr = vpp_obj->base_addr + (CPCB2_P6_SX_L << 2);
 #endif
             break;
+        // NEW for PG and IG/G0 plane border
+        case TG_PLANE7_BORDER:
+            if (VPP_CPCB0 == CpcbUnit)
+                PlaneAddr = vpp_obj->base_addr + (CPCB0_P7_SX_L << 2);
+            else if (VPP_CPCB1 == CpcbUnit)
+                PlaneAddr = vpp_obj->base_addr + (CPCB1_P7_SX_L << 2);
+            else
+                return (MV_THINVPP_EBADPARAM); // CPCB2 has no PLANE-7
+            break;
+        case TG_PLANE7A_BORDER:
+            if (VPP_CPCB0 == CpcbUnit)
+                PlaneAddr = vpp_obj->base_addr + (CPCB0_P7A_SX_L << 2);
+            else if (VPP_CPCB1 == CpcbUnit)
+                PlaneAddr = vpp_obj->base_addr + (CPCB1_P7A_SX_L << 2);
+            else
+                return (MV_THINVPP_EBADPARAM); // CPCB2 has no PLANE-7a
+            break;
+
         default:
             return (MV_THINVPP_EBADPARAM);
     }

@@ -409,13 +409,6 @@ static int vpp_fb_set_par(struct fb_info *info)
         AVPLL_Enable();
     } // maybe only AVPLL enable needed in the if?
 
-	/* set output resolution */
-    /* XXX vinz code:
-    gs_trace("CloseDispWindow\n");
-    if (_init_done)
-        MV_THINVPP_CloseDispWindow();
-    */
-
     gs_trace("SetCPCOutputResolution\n");
     if (!_init_done)
         MV_THINVPP_SetCPCBOutputResolution(CPCB_1, RES_720P5994, OUTPUT_BIT_DEPTH_8BIT);

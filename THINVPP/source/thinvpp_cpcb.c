@@ -207,6 +207,12 @@ int THINVPP_CPCB_SetPlaneBGWindow(THINVPP_OBJ *vpp_obj, int cpcbID, int layerID,
                 case CPCB1_PLANE_2: /* CPCB plane 2 */
                     CPCB_TG_SetPlaneWindow(vpp_obj, cpcbID, TG_PLANE6_PIP_BORDER, &bgwin);
                     break;
+                case CPCB1_PLANE_3: /* CPCB plane 3 = IG/G0 */
+                    printk(KERN_INFO "pl3 setbg\n");
+                    CPCB_TG_SetPlaneWindow(vpp_obj, cpcbID, TG_PLANE7_BORDER, &bgwin);
+                    printk(KERN_INFO "pl3a setbg\n");
+                    CPCB_TG_SetPlaneWindow(vpp_obj, cpcbID, TG_PLANE7A_BORDER, &bgwin);
+                    break;
             }
             break;
         case CPCB_3:

@@ -146,7 +146,7 @@ static int startChannelDataLoader(THINVPP_OBJ *vpp_obj, int chanID)
             scl_ctrl.BitMode = chan->scl_in_out_mode; /* input & output mode, depending on configuration */
             scl_ctrl.I565 = 0;
             scl_ctrl.HTapNum = 12;
-            scl_ctrl.VTapNum = 8;
+            scl_ctrl.VTapNum = 3; // WAS: 8 for MAIN PLANE; // 
             scl_ctrl.DynamicLoad = 1; /* dynamically update coefficient table */
             scl_ctrl.ForceSel = 0;
             scl_ctrl.HSclMode = -1;
