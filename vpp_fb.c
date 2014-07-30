@@ -336,17 +336,17 @@ static int vpp_fb_set_par(struct fb_info *info)
 	}
 
 	if (info->var.xres != 1280 || info->var.yres != 720){
-		gs_trace("vpp_fb does not support xres=%d, yres=%d\n",
+		gs_trace("vpp_fb does not support xres=%d, yres=%d, continuing anyway\n",
 			info->var.xres,
 			info->var.yres);
-		return -EINVAL;
+		//return -EINVAL;
 	}
 
 	/* create PE device */
 
 	/* set up fb frame */
 	vbuf.alpha   = 255;
-	vbuf.bgcolor = 0xaaaaaaaa;
+	vbuf.bgcolor = 0x12345678;
 	vbuf.m_disp_offset   = 0;
 	vbuf.m_active_left   = 0; // TODO: Panning support?
 	vbuf.m_active_top    = 0;
@@ -358,6 +358,18 @@ static int vpp_fb_set_par(struct fb_info *info)
 
 	par->vppfb_ctx.length = vbuf.m_buf_stride * vbuf.m_active_height;
 	alloc_length = par->vppfb_ctx.length + PAGE_SIZE;
+    // is there a buffer allocated already?
+    /*
+	if (par->vppfb_ctx.fbBuf_orig_malloc) {
+		dma_unmap_single(NULL, (dma_addr_t)par->vppfb_ctx.mapaddr, par->vppfb_ctx.length, DMA_TO_DEVICE);
+		gs_trace("will kfree pBuf -- OK\n");
+		kfree(par->vppfb_ctx.fbBuf_orig_malloc);
+		par->vppfb_ctx.fbBuf = NULL;
+		par->vppfb_ctx.fbBuf_orig_malloc = NULL;
+	}
+    */
+    // kmalloc a new one
+    gs_trace("will kmalloc pBuf -- OK\n");
 	unalig_buf = kmalloc(alloc_length, GFP_KERNEL | GFP_DMA);
 	par->vppfb_ctx.fbBuf_orig_malloc = unalig_buf;
 	par->vppfb_ctx.fbBuf = (void*)ALIGN((uintptr_t)unalig_buf, PAGE_SIZE);
@@ -386,7 +398,7 @@ static int vpp_fb_set_par(struct fb_info *info)
 
 	// initialize buffer
 	// TODO: YUV/RGB?
-	memset(par->vppfb_ctx.fbBuf, 0, par->vppfb_ctx.length);
+	memset(par->vppfb_ctx.fbBuf, 0x55, par->vppfb_ctx.length);
 	info->screen_base = (char *)par->vppfb_ctx.fbBuf;
 	info->fix.smem_start = (unsigned int)par->vppfb_ctx.mapaddr;
 	info->fix.smem_len = par->vppfb_ctx.length;
@@ -424,8 +436,10 @@ static int vpp_fb_set_par(struct fb_info *info)
     {
         //MV_THINVPP_SetMainDisplayFrame(&vbuf);
         //MV_THINVPP_OpenDispWindow(PLANE_MAIN, &par->vppfb_ctx.win, NULL);
-        MV_THINVPP_SetPGDisplayFrame(&vbuf);
-        MV_THINVPP_OpenDispWindow(PLANE_PG, &par->vppfb_ctx.win, NULL);
+        //MV_THINVPP_SetPGDisplayFrame(&vbuf);
+        //MV_THINVPP_OpenDispWindow(PLANE_PG, &par->vppfb_ctx.win, NULL);
+        MV_THINVPP_SetGFX0DisplayFrame(&vbuf);
+        MV_THINVPP_OpenDispWindow(PLANE_GFX0, &par->vppfb_ctx.win, NULL);
     }
 
 	/* register ISR */

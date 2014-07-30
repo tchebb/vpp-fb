@@ -129,6 +129,7 @@ int VPP_SetCPCBOutputResolution(THINVPP_OBJ *vpp_obj, int *in_params)
             BE_ENC_SetHDCxOutCtrl(vpp_obj, VPP_BE_ENC_CX_RGB, &CxParams);
 
         } else {
+            // XXX: RGB here??
             THINVPP_BE_SetVoutFormat(vpp_obj, VOUT_HD, OUTPUT_COLOR_FMT_YCBCR444, OUTPUT_BIT_DEPTH_12BIT);
             // Configure HD path with default component controls
             CxParams.CxSyncMode = VPP_BE_ENC_CX_SYNC_ON_YG; // embedded sync on Y channel
@@ -136,6 +137,7 @@ int VPP_SetCPCBOutputResolution(THINVPP_OBJ *vpp_obj, int *in_params)
             CxParams.DigitalSync = 0; // Hsync and Vsync is sent out
             CxParams.HSyncPolarity = 0; // Hsync polarity not inverted
             CxParams.VSyncPolarity = 1; // Vsync polarity inverted
+            // XXX: RGB here?
             BE_ENC_SetHDCxOutCtrl(vpp_obj, VPP_BE_ENC_CX_YPbPr, &CxParams);
         }
     }

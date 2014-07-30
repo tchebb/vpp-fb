@@ -44,14 +44,17 @@ int THINVPP_CPCB_Reset(THINVPP_OBJ *vpp_obj)
 
     /* reset CPCB video-overlay */
     VPP_OVL_LoadDefaultVal(vpp_obj, VPP_CPCB_OVL0);
+    VPP_OVL_LoadDefaultVal(vpp_obj, VPP_CPCB_OVL1);
     VPP_OVL_LoadDefaultVal(vpp_obj, VPP_CPCB_OVL2);
 
     /* reset CPCB TG */
     CPCB_TG_LoadDefaultVal(vpp_obj, VPP_CPCB0);
+    CPCB_TG_LoadDefaultVal(vpp_obj, VPP_CPCB1);
     CPCB_TG_LoadDefaultVal(vpp_obj, VPP_CPCB2);
 
     /* reset CPCB interlacer */
     CPCB_INT_LoadDefaultVal(vpp_obj, VPP_CPCB_INT0);
+    CPCB_INT_LoadDefaultVal(vpp_obj, VPP_CPCB_INT1);
     CPCB_INT_LoadDefaultVal(vpp_obj, VPP_CPCB_INT2);
 
     return (MV_THINVPP_OK);
@@ -87,6 +90,7 @@ int THINVPP_CPCB_Config(THINVPP_OBJ *vpp_obj)
         VPP_OVL_SetCtrl(vpp_obj, cpcbID, &ovl_ctrl);
         VPP_OVL_SetPlaneAlpha(vpp_obj, cpcbID, Vpp_OVL_PLANE1, 0xff);
         VPP_OVL_SetPlaneAlpha(vpp_obj, cpcbID, Vpp_OVL_PLANE2, 0xff);
+        VPP_OVL_SetPlaneAlpha(vpp_obj, cpcbID, Vpp_OVL_PLANE3, 0xff);
     }
 
 #else
@@ -95,9 +99,11 @@ int THINVPP_CPCB_Config(THINVPP_OBJ *vpp_obj)
         if (vpp_obj->chan[CHAN_OSD].dvID == cpcbID) {
             ovl_ctrl.OsdMode = VPP_OVL_OSD_MODE_MATTE; // VOP mixer output matte format OSD data
             VPP_OVL_SetPlaneAlpha(vpp_obj, cpcbID, Vpp_OVL_PLANE1, 0xff);
+            VPP_OVL_SetPlaneAlpha(vpp_obj, cpcbID, Vpp_OVL_PLANE3, 0xff);
         } else {
             ovl_ctrl.OsdMode = VPP_OVL_OSD_MODE_NORMAL; // normal format GFX data
             VPP_OVL_SetPlaneAlpha(vpp_obj, cpcbID, Vpp_OVL_PLANE1, 0x00);
+            VPP_OVL_SetPlaneAlpha(vpp_obj, cpcbID, Vpp_OVL_PLANE3, 0x00);
         }
         VPP_OVL_SetCtrl(vpp_obj, cpcbID, &ovl_ctrl);
     }
@@ -154,6 +160,8 @@ int THINVPP_CPCB_SetPlaneAttribute(THINVPP_OBJ *vpp_obj, int cpcbID, int layerID
             VPP_OVL_SetVideoBlendingFactor(vpp_obj, cpcbID, (256-alpha)/2);
 
         VPP_OVL_SetPlaneAlpha(vpp_obj, cpcbID, Vpp_OVL_PLANE2, alpha);
+    } else if (layerID == CPCB1_PLANE_3){
+        VPP_OVL_SetPlaneAlpha(vpp_obj, cpcbID, Vpp_OVL_PLANE3, alpha);
     }
 
     // set plane border global alpha
@@ -210,8 +218,8 @@ int THINVPP_CPCB_SetPlaneBGWindow(THINVPP_OBJ *vpp_obj, int cpcbID, int layerID,
                 case CPCB1_PLANE_3: /* CPCB plane 3 = IG/G0 */
                     printk(KERN_INFO "pl3 setbg\n");
                     CPCB_TG_SetPlaneWindow(vpp_obj, cpcbID, TG_PLANE7_BORDER, &bgwin);
-                    printk(KERN_INFO "pl3a setbg\n");
-                    CPCB_TG_SetPlaneWindow(vpp_obj, cpcbID, TG_PLANE7A_BORDER, &bgwin);
+                    //printk(KERN_INFO "pl3a setbg\n");
+                    //CPCB_TG_SetPlaneWindow(vpp_obj, cpcbID, TG_PLANE7A_BORDER, &bgwin);
                     break;
             }
             break;
@@ -267,9 +275,9 @@ int THINVPP_CPCB_SetPlaneSourceWindow(THINVPP_OBJ *vpp_obj, int cpcbID, int laye
                     printk(KERN_INFO "pl3 wnd\n");
                     CPCB_TG_SetPlaneWindow(vpp_obj, cpcbID, TG_PLANE3, &window);
                     CPCB_TG_SetPlaneWindow(vpp_obj, cpcbID, TG_PLANE3_CROP, &window);
-                    printk(KERN_INFO "pl3a wnd\n");
-                    CPCB_TG_SetPlaneWindow(vpp_obj, cpcbID, TG_PLANE3A, &window);
-                    CPCB_TG_SetPlaneWindow(vpp_obj, cpcbID, TG_PLANE3A_CROP, &window);
+                    //printk(KERN_INFO "pl3a wnd\n");
+                    //CPCB_TG_SetPlaneWindow(vpp_obj, cpcbID, TG_PLANE3A, &window);
+                    //CPCB_TG_SetPlaneWindow(vpp_obj, cpcbID, TG_PLANE3A_CROP, &window);
                     break;
             }
             break;

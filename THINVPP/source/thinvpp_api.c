@@ -304,9 +304,9 @@ int MV_THINVPP_Config(void)
             thinvpp_obj->plane[i].offline_dmaRID = avioDhubChMap_vpp_AUX_FRC_R; // AUX offline read-back DMA
             thinvpp_obj->plane[i].offline_dmaRdhubID = (int)(&VPP_dhubHandle);
 #endif // (BERLIN_CHIP_VERSION != BERLIN_BG2CD_A0)
-        //} else if (i == PLANE_GFX0){
-        //    thinvpp_obj->plane[i].dmaRID = avioDhubChMap_ag_GFX_R; // inline read DMA
-        //    thinvpp_obj->plane[i].dmaRdhubID = (int)(&AG_dhubHandle);
+        } else if (i == PLANE_GFX0){
+            thinvpp_obj->plane[i].dmaRID = avioDhubChMap_ag_GFX_R; // inline read DMA
+            thinvpp_obj->plane[i].dmaRdhubID = (int)(&AG_dhubHandle);
         } else if (i == PLANE_PG){
             #define        avioDhubChMap_ag_PG_R         0xD
             thinvpp_obj->plane[i].dmaRID = avioDhubChMap_ag_PG_R; // inline read DMA
@@ -316,21 +316,25 @@ int MV_THINVPP_Config(void)
     } // <- config FE planes
 
     /* config channels */
+    //thinvpp_obj->chan[CHAN_PG].dvID = CPCB_1;
+    //thinvpp_obj->chan[CHAN_PG].zorder = CPCB_ZORDER_5; /* example, could be any value */
+    //thinvpp_obj->chan[CHAN_PG].dvlayerID = CPCB1_PLANE_3;
+
+    thinvpp_obj->chan[CHAN_GFX0].dvID = CPCB_1;
+    thinvpp_obj->chan[CHAN_GFX0].zorder = CPCB_ZORDER_2; /* example, could be any value */
+    thinvpp_obj->chan[CHAN_GFX0].dvlayerID = CPCB1_PLANE_3;
     /* XXX
     thinvpp_obj->chan[CHAN_MAIN].dvID = CPCB_1;
     thinvpp_obj->chan[CHAN_MAIN].zorder = CPCB_ZORDER_2;
     thinvpp_obj->chan[CHAN_MAIN].dvlayerID = CPCB1_PLANE_1;
     */
-    thinvpp_obj->chan[CHAN_PG].dvID = CPCB_1;
-    thinvpp_obj->chan[CHAN_PG].zorder = CPCB_ZORDER_5; /* example, could be any value */
-    thinvpp_obj->chan[CHAN_PG].dvlayerID = CPCB1_PLANE_3;
     /*
     thinvpp_obj->chan[CHAN_AUX].dvID = CPCB_3;
     thinvpp_obj->chan[CHAN_AUX].zorder = CPCB_ZORDER_1;
     thinvpp_obj->chan[CHAN_AUX].dvlayerID = CPCB1_PLANE_1; // PLANE-1 of CPCB-2
     */
     thinvpp_obj->dv[CPCB_1].num_of_chans = 1;
-    thinvpp_obj->dv[CPCB_1].chanID[0] = CHAN_PG;
+    thinvpp_obj->dv[CPCB_1].chanID[0] = CHAN_GFX0;
 
     thinvpp_obj->dv[CPCB_1].num_of_vouts = 1;
     thinvpp_obj->dv[CPCB_1].voutID[0] = VOUT_HDMI;
@@ -464,8 +468,9 @@ int MV_THINVPP_SetCPCBOutputResolution(int cpcbID, int resID, int bit_depth)
         if (cpcbID == CPCB_1)
         {
             gs_trace("SetCPCOutputResolution: SetHdmiVideoFmt\n");
-            //MV_THINVPP_SetHdmiVideoFmt(OUTPUT_COLOR_FMT_YCBCR444, bit_depth, 1);
-            MV_THINVPP_SetHdmiVideoFmt(OUTPUT_COLOR_FMT_RGB888, bit_depth, 1);
+            // XXX: What must be done here??
+            MV_THINVPP_SetHdmiVideoFmt(OUTPUT_COLOR_FMT_YCBCR444, bit_depth, 1);
+            //MV_THINVPP_SetHdmiVideoFmt(OUTPUT_COLOR_FMT_RGB888, bit_depth, 1);
         }
 
         /* set DV status to active */

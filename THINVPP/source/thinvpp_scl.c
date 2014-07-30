@@ -46,11 +46,11 @@ int THINVPP_SCL_Reset(THINVPP_OBJ *vpp_obj)
     FE_DLR_LoadDefaultVal(vpp_obj, VPP_FE_DLR_CHANNEL_PIP);
     FRC_SCL_LoadDefaultVal(vpp_obj, VPP_FRC_SCL_PIP);
 #endif
-    //FE_DLR_LoadDefaultVal(vpp_obj, VPP_FE_DLR_CHANNEL_IG);
-    //FRC_SCL_LoadDefaultVal(vpp_obj, VPP_FRC_SCL_OSD);
+    FE_DLR_LoadDefaultVal(vpp_obj, VPP_FE_DLR_CHANNEL_IG);
+    FRC_SCL_LoadDefaultVal(vpp_obj, VPP_FRC_SCL_OSD);
     
-    FE_DLR_LoadDefaultVal(vpp_obj, VPP_FE_DLR_CHANNEL_PG);
-    FRC_SCL_LoadDefaultVal(vpp_obj, VPP_FRC_SCL_PG); // XXX: SCL default for PG not implemented now...
+    //FE_DLR_LoadDefaultVal(vpp_obj, VPP_FE_DLR_CHANNEL_PG);
+    //FRC_SCL_LoadDefaultVal(vpp_obj, VPP_FRC_SCL_PG); // XXX: SCL default for PG not implemented now...
 
     FE_DLR_LoadDefaultVal(vpp_obj, VPP_FE_DLR_CHANNEL_OFFLINE);
     FRC_SCL_LoadDefaultVal(vpp_obj, VPP_FRC_SCL_BE);
