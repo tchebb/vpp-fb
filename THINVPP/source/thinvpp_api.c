@@ -305,6 +305,8 @@ int MV_THINVPP_Config(void)
             thinvpp_obj->plane[i].offline_dmaRdhubID = (int)(&VPP_dhubHandle);
 #endif // (BERLIN_CHIP_VERSION != BERLIN_BG2CD_A0)
         } else if (i == PLANE_GFX0){
+            // XXX TODO: Check what number is used for GFX_R, because it should be 12 (0xC)
+            printk("Setting GFX0 dmaRID = %d\n", avioDhubChMap_ag_GFX_R);
             thinvpp_obj->plane[i].dmaRID = avioDhubChMap_ag_GFX_R; // inline read DMA
             thinvpp_obj->plane[i].dmaRdhubID = (int)(&AG_dhubHandle);
         } else if (i == PLANE_PG){

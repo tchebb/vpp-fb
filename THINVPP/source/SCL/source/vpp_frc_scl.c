@@ -809,6 +809,7 @@ int FRC_SCL_SetSclCoeff(THINVPP_OBJ *vpp_obj, int UnitNum, PVPP_SCL_RES pIORes, 
             }else{
                 tempHorSclCoeffMode = -1;
             }
+            printk("Galois : HorSclCoeffMode: %i\n", tempHorSclCoeffMode);
         }
 
         {
@@ -832,6 +833,7 @@ int FRC_SCL_SetSclCoeff(THINVPP_OBJ *vpp_obj, int UnitNum, PVPP_SCL_RES pIORes, 
             }else{
                 tempVerSclCoeffMode = -1;
             }
+            printk("Galois : VerSclCoeffMode: %i\n", tempVerSclCoeffMode);
         }
 
     if(-1 != tempHorSclCoeffMode) {
@@ -1029,6 +1031,7 @@ int FRC_SCL_SetBeSwitch(THINVPP_OBJ *vpp_obj, int chanID, int BESwitch)
             break;
         case CHAN_GFX0:
             if (BESwitch == CPCB_1) { // GFX0 -> CPCB-1
+                printk("Setting BESwitch: GFX0 -> CPCB-1\n");
                 ((CPCB_PL_EN *)(&(vpp_obj->scl.VppFrcSclBeSwitch0)))->field.ig = 1;
                 ((CPCB_PL_EN *)(&(vpp_obj->scl.VppFrcSclBeSwitch1)))->field.ig = 0;
             } else if (BESwitch == CPCB_2){ // GFX0 -> CPCB-2

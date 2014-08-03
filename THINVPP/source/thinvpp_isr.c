@@ -76,16 +76,9 @@ static int startChannelDataLoader(THINVPP_OBJ *vpp_obj, int chanID)
     if ( (chanID == CHAN_MAIN) || (chanID == CHAN_GFX0)) { /* none AUX channel */
         VBUF_INFO * pinfo;
         unsigned active_left, active_width, frame_addr;
-        unsigned dlr_id = VPP_FE_DLR_CHANNEL_MAIN;
-        unsigned scl_id = VPP_FRC_SCL_MAIN;
-        PLANE *plane = &vpp_obj->plane[PLANE_MAIN];
-
-        // XXX: vnz code
-        if(chanID == CHAN_GFX0) {
-            dlr_id = VPP_FE_DLR_CHANNEL_IG;
-            scl_id = VPP_FRC_SCL_OSD;
-            plane = &vpp_obj->plane[PLANE_GFX0];
-        }
+        unsigned dlr_id = VPP_FE_DLR_CHANNEL_IG;
+        unsigned scl_id = VPP_FRC_SCL_OSD; // OSD == GFX0 appartently
+        PLANE *plane = &vpp_obj->plane[PLANE_GFX0];
 
         VPP_FE_DLR_PLANE_DATA_FMT plane_fmt;
         VPP_SCL_CTRL scl_ctrl;
@@ -139,7 +132,7 @@ static int startChannelDataLoader(THINVPP_OBJ *vpp_obj, int chanID)
             scl_res.IVRes = plane->ref_win.height;
             scl_res.OHRes = chan->disp_win.width; /* resolution after scaling */
             scl_res.OVRes = chan->disp_win.height;
-            scl_ctrl.HScalePos = VPP_SCL_HSCALE_AUTO;
+            scl_ctrl.HScalePos = VPP_SCL_HSCALE_ABSENT; // WAS: VPP_SCL_HSCALE_AUTO;
             scl_ctrl.InputClr = 0; /* YUV input for none-OSD plane, ignore CSC in scaler */
             scl_ctrl.OsdInput = 0; /* non-OSD input (without alpha) */
             scl_ctrl.NLEn = 0; /* linear horizontal scaling mode */
@@ -157,11 +150,11 @@ static int startChannelDataLoader(THINVPP_OBJ *vpp_obj, int chanID)
             /* update scaling mode according to down-scaling ratio */
             plane->mode = MODE_INLINE;
             // XXX: SET ALL SCALERS SAME MODE!
-            //for (scl_id = VPP_FRC_SCL_MAIN; scl_id < VPP_FRC_SCL_MAX; scl_id++)
+            //for (scl_id = VPP_FRC_SCL_DETAIL; scl_id < VPP_FRC_SCL_MAX; scl_id++)
             {
-                FRC_SCL_ChopCtrl(vpp_obj, scl_id, 0);
+                FRC_SCL_ChopCtrl(vpp_obj, scl_id, 0); // XXX: MAIN and PIP planes only
                 FRC_SCL_SetDeLrstDelay(vpp_obj, scl_id, 80);
-                FRC_SCL_SetWorkMode(vpp_obj, scl_id, plane->mode);
+                FRC_SCL_SetWorkMode(vpp_obj, scl_id, plane->mode); // XXX: Works only for MAIN, PIP and DETAIL
                 FRC_SCL_SetSclCtrlParams(vpp_obj, scl_id, &scl_res, &scl_ctrl);
                 FRC_SCL_SetFrcParams(vpp_obj, scl_id, &frc_res);
             }
