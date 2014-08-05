@@ -109,7 +109,7 @@ static int startChannelDataLoader(THINVPP_OBJ *vpp_obj, int chanID)
 
             // XXX: WAS:
             plane_fmt.SrcFmt = SRCFMT_ARGB32; // same enum as SRCFMT_YUV422;
-            plane_fmt.FmtOrder = ORDER_RGBA; // same enum as ORDER_YUYV;
+            plane_fmt.FmtOrder = ORDER_ABGR; // same enum as ORDER_YUYV;
             // XXX: NOW:
             //plane_fmt.SrcFmt = SRCFMT_RGB565;
             //plane_fmt.FmtOrder = ORDER_RGBA;

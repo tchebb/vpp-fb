@@ -345,8 +345,8 @@ static int vpp_fb_set_par(struct fb_info *info)
 	/* create PE device */
 
 	/* set up fb frame */
-	vbuf.alpha   = 255;
-	vbuf.bgcolor = 0x11FF1111; // (AA) RR GG RR
+	vbuf.alpha   = 100;
+	vbuf.bgcolor = 0x11FF1111; // (AA) BB GG RR
 	vbuf.m_disp_offset   = 0;
 	vbuf.m_active_left   = 0; // TODO: Panning support?
 	vbuf.m_active_top    = 0;

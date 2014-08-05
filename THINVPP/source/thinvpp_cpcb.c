@@ -88,9 +88,9 @@ int THINVPP_CPCB_Config(THINVPP_OBJ *vpp_obj)
         ovl_ctrl.OsdMode = VPP_OVL_OSD_MODE_MATTE; //  in matte format
 #endif
         VPP_OVL_SetCtrl(vpp_obj, cpcbID, &ovl_ctrl);
-        VPP_OVL_SetPlaneAlpha(vpp_obj, cpcbID, Vpp_OVL_PLANE1, 0xff);
-        VPP_OVL_SetPlaneAlpha(vpp_obj, cpcbID, Vpp_OVL_PLANE2, 0xff);
-        VPP_OVL_SetPlaneAlpha(vpp_obj, cpcbID, Vpp_OVL_PLANE3, 0xff);
+        VPP_OVL_SetPlaneAlpha(vpp_obj, cpcbID, Vpp_OVL_PLANE1, 0x5f);
+        VPP_OVL_SetPlaneAlpha(vpp_obj, cpcbID, Vpp_OVL_PLANE2, 0x5f);
+        VPP_OVL_SetPlaneAlpha(vpp_obj, cpcbID, Vpp_OVL_PLANE3, 0x5f);
     }
 
 #else
